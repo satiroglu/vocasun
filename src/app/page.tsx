@@ -1,65 +1,90 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { Sun } from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900">
+      {/* --- Navbar --- */}
+      <nav className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex justify-between items-center">
+          <div className="text-2xl font-bold text-indigo-600 flex items-center gap-2 cursor-pointer">
+            <Sun className="w-8 h-8" />
+            <span>Vocasun</span>
+          </div>
+          <div className="space-x-4">
+            <Link href="/login" className="text-slate-600 hover:text-indigo-600 font-medium transition">
+              Giriş Yap
+            </Link>
+            <Link href="/register" className="bg-indigo-600 text-white px-5 py-2 rounded-full font-medium hover:bg-indigo-700 transition shadow-md hover:shadow-lg">
+              Üye Ol
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+      </nav>
+
+      {/* --- Hero Section --- */}
+      <main className="flex-grow flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-b from-indigo-50/50 to-white">
+        <div className="inline-block px-4 py-1.5 mb-6 rounded-full bg-indigo-50 text-indigo-700 text-sm font-semibold border border-indigo-100">
+          🚀 İngilizce Öğrenmenin En Akıllı Yolu
+        </div>
+
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-slate-900">
+          Kelime Ezberleme, <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+            Gerçekten Öğren.
+          </span>
+        </h1>
+
+        <p className="text-lg md:text-xl text-slate-600 max-w-2xl mb-10 leading-relaxed">
+          Sadece kartları çevirme. <b>Yazarak</b>, <b>dinleyerek</b> ve <b>bağlam içinde</b> görerek kalıcı hafızana at.
+          Yapay zeka destekli aralıklı tekrar sistemiyle unutmaya son ver.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <Link href="/register" className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-xl shadow-indigo-200">
+            Hemen Başla (Ücretsiz)
+          </Link>
+          <a href="#nasil" className="bg-white text-slate-700 border border-slate-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition">
+            Nasıl Çalışır?
           </a>
         </div>
       </main>
+
+      {/* --- Özellikler --- */}
+      <section id="nasil" className="py-20 bg-slate-50 border-t border-slate-200">
+        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-10">
+          <FeatureCard
+            icon="🎧"
+            title="Duyarak Öğren"
+            desc="Kelimelerin doğru telaffuzlarını dinle, kulak dolgunluğu kazan."
+          />
+          <FeatureCard
+            icon="✍️"
+            title="Yazarak Pekiştir"
+            desc="Sadece seçmek yetmez. Kelimeyi kendin yazarak kas hafızanı çalıştır."
+          />
+          <FeatureCard
+            icon="📈"
+            title="Gelişimini İzle"
+            desc="Hangi seviyedesin? Detaylı istatistiklerle ilerlemeni gün gün takip et."
+          />
+        </div>
+      </section>
+
+      {/* --- Footer --- */}
+      <footer className="bg-white border-t border-slate-200 py-8 text-center text-slate-500 text-sm">
+        <p>&copy; 2024 Vocasun. Tüm hakları saklıdır.</p>
+      </footer>
+    </div>
+  );
+}
+
+function FeatureCard({ icon, title, desc }: { icon: string, title: string, desc: string }) {
+  return (
+    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+      <div className="text-4xl mb-4">{icon}</div>
+      <h3 className="text-xl font-bold text-slate-900 mb-2">{title}</h3>
+      <p className="text-slate-600 leading-relaxed">{desc}</p>
     </div>
   );
 }

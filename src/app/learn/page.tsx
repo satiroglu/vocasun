@@ -16,13 +16,14 @@ export default function Learn() {
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [flipped, setFlipped] = useState(false);
 
-    // Soru Çekme (Rastgelelik iyileştirilebilir)
+    // Soru Çekme
     const fetchQuestion = async () => {
         setLoading(true);
         setStatus('idle');
         setUserInput('');
         setFlipped(false);
 
+        // Rastgelelik için offset (Gerçek projede 'rpc' fonksiyonu daha iyidir)
         const randomOffset = Math.floor(Math.random() * 40);
         const { data } = await supabase.from('vocabulary').select('*').range(randomOffset, randomOffset + 3);
 
@@ -47,12 +48,50 @@ export default function Learn() {
         }
     };
 
-    // Doğru Cevap İşlemleri (XP Ekleme)
+    // --- YENİ: İlerleme Kaydetme (Loglama) ---
+    const logProgress = async (wordId: number, isMastered: boolean) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Upsert: Kayıt varsa güncelle, yoksa ekle
+        const { error } = await supabase
+            .from('user_progress')
+            .upsert({
+                user_id: user.id,
+                vocab_id: wordId,
+                is_mastered: isMastered,
+                updated_at: new Date().toISOString(), // Sıralama için zaman damgası
+            }, { onConflict: 'user_id, vocab_id' });
+
+        if (error) {
+            console.error("Loglama hatası (Detay):", JSON.stringify(error, null, 2));
+            console.error("Hata Mesajı:", error.message);
+            console.error("Hata Detayı:", error.details);
+        }
+    };
+
+    // --- GÜNCELLENDİ: Doğru Cevap İşlemleri ---
     const handleCorrect = async () => {
         setStatus('success');
-        playAudio(); // Başarınca da çal
+        playAudio();
+
+        // 1. XP Puanı Ekle
         const { data: { user } } = await supabase.auth.getUser();
         if (user) await supabase.rpc('increment_score', { row_id: user.id });
+
+        // 2. Veritabanına "Ezberlendi" olarak kaydet
+        if (correctWord) {
+            await logProgress(correctWord.id, true);
+        }
+    };
+
+    // --- YENİ: Bilmiyorum (Kart Modu İçin) ---
+    const handleDontKnow = async () => {
+        if (correctWord) {
+            // Veritabanına "Çalışılıyor" olarak kaydet
+            await logProgress(correctWord.id, false);
+        }
+        fetchQuestion(); // Yeni soruya geç
     };
 
     const checkWriting = (e: React.FormEvent) => {
@@ -166,9 +205,20 @@ export default function Learn() {
 
                                     {!status && ( // Sadece henüz cevaplanmadıysa butonları göster
                                         <div className="flex gap-2 w-full px-4">
-                                            {/* Buradaki 'handleCorrect' XP kazandıracak */}
-                                            <button onClick={(e) => { e.stopPropagation(); handleCorrect(); }} className="flex-1 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-bold hover:bg-green-200">Biliyorum</button>
-                                            <button onClick={(e) => { e.stopPropagation(); fetchQuestion(); }} className="flex-1 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-bold hover:bg-red-200">Bilmiyorum</button>
+                                            {/* Biliyorum: XP kazan ve logla */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleCorrect(); }}
+                                                className="flex-1 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-bold hover:bg-green-200"
+                                            >
+                                                Biliyorum
+                                            </button>
+                                            {/* Bilmiyorum: Sadece logla ve geç */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDontKnow(); }}
+                                                className="flex-1 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-bold hover:bg-red-200"
+                                            >
+                                                Bilmiyorum
+                                            </button>
                                         </div>
                                     )}
                                 </div>

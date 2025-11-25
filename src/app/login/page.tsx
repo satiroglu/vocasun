@@ -91,7 +91,7 @@ export default function Login() {
                             </button>
                         </div>
                         <div className="flex justify-end mt-1">
-                            <Link href="/forgot-password" text-sm className="text-xs text-indigo-600 hover:underline">
+                            <Link href="/forgot-password" className="text-xs text-indigo-600 hover:underline">
                                 Şifremi unuttum?
                             </Link>
                         </div>

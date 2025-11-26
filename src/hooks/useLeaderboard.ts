@@ -8,7 +8,8 @@ import { Profile } from '@/types';
 async function fetchLeaderboard(): Promise<Partial<Profile>[]> {
     const { data } = await supabase
         .from('profiles')
-        .select('username, first_name, last_name, total_xp, level, display_name_preference')
+        .select('username, first_name, last_name, total_xp, level, display_name_preference, leaderboard_visibility')
+        .neq('leaderboard_visibility', 'hidden') // Gizli olanları getirme
         .order('total_xp', { ascending: false })
         .limit(20);
 

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
     User, Lock, Mail, Save, AlertCircle,
     CheckCircle, Eye, EyeOff, Eye as EyeIcon, Trash2,
-    AlertTriangle, Bell, Globe, Camera, Shield
+    AlertTriangle, Bell, Globe, Camera, Shield, BookOpen, Target, TrendingUp, List
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
@@ -18,6 +18,7 @@ export default function Settings() {
 
     // Bölüm bazlı loading state'leri
     const [savingPersonal, setSavingPersonal] = useState(false);
+    const [savingLearning, setSavingLearning] = useState(false);
     const [savingAppearance, setSavingAppearance] = useState(false);
     const [savingPassword, setSavingPassword] = useState(false);
     const [savingNotif, setSavingNotif] = useState(false);
@@ -31,10 +32,15 @@ export default function Settings() {
 
     // Veriler
     const [formData, setFormData] = useState({
-        dailyGoal: 20, // Varsayılan 20
-        bio: '',       // Yeni bio alanı
-        id: '', firstName: '', lastName: '', username: '', email: '', displayPreference: 'username',
-        emailNotifications: true, marketingEmails: false
+        dailyGoal: 20,
+        bio: '',
+        id: '', firstName: '', lastName: '', username: '', email: '', 
+        displayPreference: 'username',
+        leaderboardVisibility: 'visible', // 'visible', 'anonymous', 'hidden'
+        preferredWordList: 'general', // 'general', 'academic', 'business', 'toefl', 'ielts'
+        difficultyLevel: 'mixed', // 'beginner', 'intermediate', 'advanced', 'mixed'
+        emailNotifications: true, 
+        marketingEmails: false
     });
 
     const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
@@ -55,6 +61,9 @@ export default function Settings() {
                 dailyGoal: data?.daily_goal || 20,
                 bio: data?.bio || '',
                 displayPreference: data?.display_name_preference || 'username',
+                leaderboardVisibility: data?.leaderboard_visibility || 'visible',
+                preferredWordList: data?.preferred_word_list || 'general',
+                difficultyLevel: data?.difficulty_level || 'mixed',
                 emailNotifications: true,
                 marketingEmails: false
             });
@@ -78,8 +87,7 @@ export default function Settings() {
                 .update({
                     first_name: formData.firstName,
                     last_name: formData.lastName,
-                    daily_goal: formData.dailyGoal, // Eklendi
-                    bio: formData.bio // Eklendi
+                    bio: formData.bio
                 })
                 .eq('id', formData.id);
 
@@ -98,12 +106,35 @@ export default function Settings() {
         }
     };
 
+    const saveLearning = async () => {
+        setSavingLearning(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ 
+                    daily_goal: formData.dailyGoal,
+                    preferred_word_list: formData.preferredWordList,
+                    difficulty_level: formData.difficultyLevel
+                })
+                .eq('id', formData.id);
+            if (error) throw error;
+            showMessage('success', 'Öğrenim ayarları kaydedildi.');
+        } catch (error: any) {
+            showMessage('error', error.message);
+        } finally {
+            setSavingLearning(false);
+        }
+    };
+
     const saveAppearance = async () => {
         setSavingAppearance(true);
         try {
             const { error } = await supabase
                 .from('profiles')
-                .update({ display_name_preference: formData.displayPreference })
+                .update({ 
+                    display_name_preference: formData.displayPreference,
+                    leaderboard_visibility: formData.leaderboardVisibility
+                })
                 .eq('id', formData.id);
             if (error) throw error;
             showMessage('success', 'Görünüm tercihleri kaydedildi.');
@@ -175,7 +206,7 @@ export default function Settings() {
     if (loading) return <div className="min-h-screen pt-20 flex justify-center bg-slate-50"><SettingsSkeleton /></div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 font-sans pt-6 pb-20">
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 font-sans pt-20 pb-20">
 
             <div className="w-full max-w-3xl mb-8 flex items-center justify-between">
                 <div>
@@ -260,23 +291,6 @@ export default function Settings() {
                         </div>
 
                         <div className="mb-5">
-                            <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Günlük Kelime Hedefi</label>
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="range"
-                                    min="5"
-                                    max="50"
-                                    step="5"
-                                    value={formData.dailyGoal}
-                                    onChange={(e) => setFormData({ ...formData, dailyGoal: Number(e.target.value) })}
-                                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                />
-                                <span className="font-bold text-indigo-600 w-12 text-right">{formData.dailyGoal}</span>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-1 ml-1">Günde kaç kelime çalışmak istiyorsun?</p>
-                        </div>
-
-                        <div className="mb-5">
                             <Input
                                 label="Hakkımda (Bio)"
                                 value={formData.bio}
@@ -293,7 +307,109 @@ export default function Settings() {
                     </form>
                 </section>
 
-                {/* 2. GÖRÜNÜM & GİZLİLİK (Düzeltildi ve İyileştirildi) */}
+                {/* 2. ÖĞRENİM SEÇENEKLERİ */}
+                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><BookOpen size={24} /></div>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">Öğrenim Seçenekleri</h2>
+                            <p className="text-sm text-slate-500">Öğrenme deneyimini kişiselleştir.</p>
+                        </div>
+                    </div>
+
+                    {/* Günlük Kelime Hedefi */}
+                    <div className="mb-6 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Target size={20} className="text-indigo-600" />
+                            <label className="block text-sm font-bold text-slate-800">Günlük Kelime Hedefi</label>
+                        </div>
+                        <div className="flex items-center gap-4 mb-2">
+                            <input
+                                type="range"
+                                min="5"
+                                max="50"
+                                step="5"
+                                value={formData.dailyGoal}
+                                onChange={(e) => setFormData({ ...formData, dailyGoal: Number(e.target.value) })}
+                                className="w-full h-2.5 bg-white rounded-lg appearance-none cursor-pointer accent-indigo-600 shadow-inner"
+                            />
+                            <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-indigo-200 min-w-[60px] text-center">
+                                <span className="font-bold text-indigo-600 text-lg">{formData.dailyGoal}</span>
+                            </div>
+                        </div>
+                        <p className="text-xs text-indigo-700 ml-1">Her gün {formData.dailyGoal} kelime çalışmayı hedefle.</p>
+                    </div>
+
+                    {/* Kelime Listesi Seçimi */}
+                    <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <List size={20} className="text-slate-600" />
+                            <label className="block text-sm font-bold text-slate-800">Çalışılacak Kelime Listesi</label>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                { value: 'general', label: 'Genel Kelimeler', desc: 'Günlük hayatta kullanılan kelimeler', icon: '📚' },
+                                { value: 'academic', label: 'Akademik', desc: 'Üniversite ve akademik metinler', icon: '🎓' },
+                                { value: 'business', label: 'İş İngilizcesi', desc: 'İş hayatı ve profesyonel', icon: '💼' },
+                                { value: 'toefl', label: 'TOEFL', desc: 'TOEFL sınavına yönelik', icon: '📝' },
+                                { value: 'ielts', label: 'IELTS', desc: 'IELTS sınavına yönelik', icon: '📋' },
+                            ].map(list => (
+                                <div
+                                    key={list.value}
+                                    onClick={() => setFormData({ ...formData, preferredWordList: list.value })}
+                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                        formData.preferredWordList === list.value
+                                            ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                                            : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between mb-1">
+                                        <span className="text-2xl">{list.icon}</span>
+                                        {formData.preferredWordList === list.value && <CheckCircle size={18} className="text-indigo-600" />}
+                                    </div>
+                                    <div className="font-bold text-slate-800 text-sm mb-0.5">{list.label}</div>
+                                    <div className="text-xs text-slate-500">{list.desc}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Zorluk Seviyesi */}
+                    <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <TrendingUp size={20} className="text-slate-600" />
+                            <label className="block text-sm font-bold text-slate-800">Zorluk Seviyesi</label>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {[
+                                { value: 'beginner', label: 'Başlangıç', color: 'green' },
+                                { value: 'intermediate', label: 'Orta', color: 'yellow' },
+                                { value: 'advanced', label: 'İleri', color: 'red' },
+                                { value: 'mixed', label: 'Karışık', color: 'purple' },
+                            ].map(level => (
+                                <div
+                                    key={level.value}
+                                    onClick={() => setFormData({ ...formData, difficultyLevel: level.value })}
+                                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all text-center ${
+                                        formData.difficultyLevel === level.value
+                                            ? `border-${level.color}-500 bg-${level.color}-50`
+                                            : 'border-slate-200 hover:border-slate-300'
+                                    }`}
+                                >
+                                    <div className="font-bold text-sm text-slate-800">{level.label}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end border-t border-slate-100 pt-5">
+                        <Button onClick={saveLearning} variant="soft" isLoading={savingLearning} icon={!savingLearning && <Save size={18} />}>
+                            Öğrenim Ayarlarını Kaydet
+                        </Button>
+                    </div>
+                </section>
+
+                {/* 3. GÖRÜNÜM & GİZLİLİK (Düzeltildi ve İyileştirildi) */}
                 <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl"><EyeIcon size={24} /></div>
@@ -345,14 +461,100 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    <div className="flex justify-end border-t border-slate-50 pt-5">
-                        <Button onClick={saveAppearance} isLoading={savingAppearance} variant="soft">
-                            Tercihi Güncelle
+                    {/* Liderlik Tablosu Gizliliği */}
+                    <div className="border-t border-slate-100 pt-6 mt-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Shield size={20} className="text-purple-600" />
+                            <h3 className="text-base font-bold text-slate-800">Liderlik Tablosu Gizliliği</h3>
+                        </div>
+                        <p className="text-sm text-slate-500 mb-4">Liderlik tablosunda nasıl görünmek istediğini seç.</p>
+                        
+                        <div className="space-y-3">
+                            {/* Görünür */}
+                            <div
+                                onClick={() => setFormData({ ...formData, leaderboardVisibility: 'visible' })}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                    formData.leaderboardVisibility === 'visible'
+                                        ? 'border-green-500 bg-green-50/50'
+                                        : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                            <Eye size={20} className="text-green-600" />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-slate-800 text-sm">Görünür</div>
+                                            <div className="text-xs text-slate-500">İsmim ve istatistiklerim görünsün</div>
+                                        </div>
+                                    </div>
+                                    {formData.leaderboardVisibility === 'visible' && (
+                                        <CheckCircle size={20} className="text-green-600" />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Anonim */}
+                            <div
+                                onClick={() => setFormData({ ...formData, leaderboardVisibility: 'anonymous' })}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                    formData.leaderboardVisibility === 'anonymous'
+                                        ? 'border-amber-500 bg-amber-50/50'
+                                        : 'border-slate-200 hover:border-amber-300 hover:bg-slate-50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                            <User size={20} className="text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-slate-800 text-sm">Anonim</div>
+                                            <div className="text-xs text-slate-500">"Gizli Kullanıcı" olarak görün</div>
+                                        </div>
+                                    </div>
+                                    {formData.leaderboardVisibility === 'anonymous' && (
+                                        <CheckCircle size={20} className="text-amber-600" />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Gizli */}
+                            <div
+                                onClick={() => setFormData({ ...formData, leaderboardVisibility: 'hidden' })}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                    formData.leaderboardVisibility === 'hidden'
+                                        ? 'border-red-500 bg-red-50/50'
+                                        : 'border-slate-200 hover:border-red-300 hover:bg-slate-50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                            <EyeOff size={20} className="text-red-600" />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-slate-800 text-sm">Liderlik Tablosunda Görünme</div>
+                                            <div className="text-xs text-slate-500">Tamamen gizli kal</div>
+                                        </div>
+                                    </div>
+                                    {formData.leaderboardVisibility === 'hidden' && (
+                                        <CheckCircle size={20} className="text-red-600" />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end border-t border-slate-100 pt-5 mt-6">
+                        <Button onClick={saveAppearance} isLoading={savingAppearance} variant="soft" icon={!savingAppearance && <Save size={18} />}>
+                            Görünüm Ayarlarını Kaydet
                         </Button>
                     </div>
                 </section>
 
-                {/* 3. BİLDİRİM AYARLARI */}
+                {/* 4. BİLDİRİM AYARLARI */}
                 <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl"><Bell size={24} /></div>
@@ -399,7 +601,7 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* 4. GÜVENLİK & ŞİFRE */}
+                {/* 5. GÜVENLİK & ŞİFRE */}
                 <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><Shield size={24} /></div>

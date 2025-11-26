@@ -31,10 +31,10 @@ export default function UserProfile() {
         fetchProfile();
     }, [username]);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center">Yükleniyor...</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center pt-20">Yükleniyor...</div>;
 
     if (!profile) return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-20">
             <h2 className="text-2xl font-bold text-slate-800">Kullanıcı Bulunamadı</h2>
             <Link href="/dashboard"><Button variant="outline">Anasayfaya Dön</Button></Link>
         </div>
@@ -46,7 +46,7 @@ export default function UserProfile() {
         : profile.username;
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-6 pb-20 px-4 font-sans">
+        <div className="min-h-screen bg-slate-50 pt-20 pb-20 px-4 font-sans">
             <div className="max-w-2xl mx-auto">
                 {/* Profil Kartı */}
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-indigo-100 border border-slate-100 text-center relative overflow-hidden">

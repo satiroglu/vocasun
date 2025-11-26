@@ -30,28 +30,34 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 flex flex-col items-center justify-center p-4 sm:p-6">
 
-            <Link href="/" className="mb-8 flex items-center gap-2 text-indigo-600 font-bold text-2xl hover:opacity-80 transition">
-                <Sun className="w-8 h-8" />
+            <Link href="/" className="mb-6 sm:mb-8 flex items-center gap-2.5 text-indigo-600 font-bold text-2xl sm:text-3xl hover:opacity-80 transition group">
+                <Sun className="w-8 h-8 sm:w-10 sm:h-10 group-hover:rotate-180 transition-transform duration-700" />
                 <span>Vocasun</span>
             </Link>
 
-            <div className="bg-white w-full max-w-md p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-100">
-                <div className="flex items-center mb-6">
-                    <Link href="/login" className="text-slate-400 hover:text-slate-600 transition mr-auto">
-                        <ArrowLeft size={20} />
+            <div className="bg-white w-full max-w-md p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl shadow-indigo-100/50 border border-slate-200/50">
+                <div className="flex items-center mb-6 sm:mb-8">
+                    <Link href="/login" className="text-slate-400 hover:text-slate-600 transition mr-3 sm:mr-4 -ml-1 p-1 hover:bg-slate-50 rounded-lg">
+                        <ArrowLeft size={22} />
                     </Link>
-                    <h2 className="text-2xl font-bold text-slate-900 mr-auto pr-5">Şifre Sıfırla</h2>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Şifre Sıfırla</h2>
                 </div>
 
                 {message ? (
-                    <div className="bg-green-50 text-green-700 p-4 rounded-xl border border-green-200 text-center">
-                        {message}
+                    <div className="bg-green-50 text-green-700 p-4 sm:p-5 rounded-xl border border-green-200 text-center space-y-3">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                            <Mail size={24} className="sm:w-8 sm:h-8" />
+                        </div>
+                        <p className="font-medium text-sm sm:text-base leading-relaxed">{message}</p>
+                        <Link href="/login" className="inline-block mt-4 text-indigo-600 hover:text-indigo-700 font-bold text-sm hover:underline">
+                            Giriş sayfasına dön
+                        </Link>
                     </div>
                 ) : (
-                    <form onSubmit={handleReset} className="space-y-4">
-                        <p className="text-slate-500 text-sm">
+                    <form onSubmit={handleReset} className="space-y-5 sm:space-y-6">
+                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                             Hesabınıza kayıtlı e-posta adresinizi girin, size şifrenizi sıfırlamanız için bir bağlantı gönderelim.
                         </p>
 
@@ -68,7 +74,7 @@ export default function ForgotPassword() {
                         <Button
                             type="submit"
                             isLoading={loading}
-                            className="w-full"
+                            className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold"
                         >
                             Bağlantı Gönder
                         </Button>

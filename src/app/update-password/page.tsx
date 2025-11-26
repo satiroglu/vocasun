@@ -40,40 +40,45 @@ export default function UpdatePassword() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 font-sans">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
 
-            <Link href="/" className="mb-8 flex items-center gap-2 text-indigo-600 font-bold text-2xl">
-                <Sun className="w-8 h-8" />
+            <Link href="/" className="mb-6 sm:mb-8 flex items-center gap-2.5 text-indigo-600 font-bold text-2xl sm:text-3xl hover:opacity-80 transition group">
+                <Sun className="w-8 h-8 sm:w-10 sm:h-10 group-hover:rotate-180 transition-transform duration-700" />
                 <span>Vocasun</span>
             </Link>
 
-            <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-xl border border-slate-100">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">Yeni Şifre Belirle</h2>
-                <p className="text-slate-500 text-center mb-6 text-sm">Lütfen hesabınız için yeni bir şifre girin.</p>
+            <div className="bg-white w-full max-w-md p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl shadow-indigo-100/50 border border-slate-200/50">
+                <div className="text-center mb-6 sm:mb-8">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Lock size={28} className="sm:w-10 sm:h-10" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Yeni Şifre Belirle</h2>
+                    <p className="text-slate-600 text-sm sm:text-base">Lütfen hesabınız için yeni bir şifre girin.</p>
+                </div>
 
                 {message && (
-                    <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {message.type === 'success' ? <CheckCircle size={20} className="shrink-0" /> : <AlertCircle size={20} className="shrink-0" />}
-                        <span className="text-sm font-medium">{message.text}</span>
+                    <div className={`p-4 sm:p-5 rounded-xl mb-6 flex items-start gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                        {message.type === 'success' ? <CheckCircle size={22} className="shrink-0 mt-0.5" /> : <AlertCircle size={22} className="shrink-0 mt-0.5" />}
+                        <span className="text-sm sm:text-base font-medium leading-relaxed">{message.text}</span>
                     </div>
                 )}
 
-                <form onSubmit={handleUpdate} className="space-y-6">
+                <form onSubmit={handleUpdate} className="space-y-5 sm:space-y-6">
                     <div className="relative">
                         <Input
                             label="Yeni Şifre"
                             type={showPass ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••"
+                            placeholder="••••••••"
                             required
-                            className="pr-10"
+                            className="pr-12"
                             icon={<Lock size={18} />}
                         />
                         <button
                             type="button"
                             onClick={() => setShowPass(!showPass)}
-                            className="absolute right-3 top-[38px] text-slate-400 hover:text-slate-600"
+                            className="absolute right-3 top-[38px] text-slate-400 hover:text-indigo-600 transition-colors p-1"
                         >
                             {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -82,7 +87,7 @@ export default function UpdatePassword() {
                     <Button
                         type="submit"
                         isLoading={loading}
-                        className="w-full"
+                        className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold"
                         icon={!loading && <Save size={20} />}
                     >
                         Şifreyi Güncelle

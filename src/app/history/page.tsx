@@ -39,7 +39,7 @@ export default function History() {
     const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
     return (
-        <div className="min-h-screen bg-slate-50 px-4 pt-6 pb-10 font-sans flex flex-col items-center">
+        <div className="min-h-screen bg-slate-50 px-4 pt-20 pb-10 font-sans flex flex-col items-center">
             <div className="w-full max-w-3xl">
 
                 <div className="flex items-center gap-4 mb-6">

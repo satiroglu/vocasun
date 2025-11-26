@@ -30,15 +30,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>
           <Navbar />
-          <main className="pt-16">
-            {children}
-          </main>
+          {children}
         </QueryProvider>
       </body>
     </html>

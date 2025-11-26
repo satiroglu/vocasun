@@ -56,10 +56,10 @@ export default function Dashboard() {
         return profile.username || profile.first_name || 'Öğrenci';
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-200 border-t-indigo-600"></div></div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 pt-20"><div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-200 border-t-indigo-600"></div></div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans pt-6 pb-10">
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans pt-20 pb-10">
             <main className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 space-y-6">
 
                 {/* Hero Section */}

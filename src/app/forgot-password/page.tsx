@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { ArrowLeft, Sun } from 'lucide-react';
+import { ArrowLeft, Sun, Mail } from 'lucide-react';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 
 export default function ForgotPassword() {
     const [loading, setLoading] = useState(false);
@@ -52,25 +54,24 @@ export default function ForgotPassword() {
                         <p className="text-slate-500 text-sm">
                             Hesabınıza kayıtlı e-posta adresinizi girin, size şifrenizi sıfırlamanız için bir bağlantı gönderelim.
                         </p>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">E-posta</label>
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-                                placeholder="ornek@email.com"
-                            />
-                        </div>
 
-                        <button
+                        <Input
+                            label="E-posta"
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="ornek@email.com"
+                            icon={<Mail size={20} />}
+                        />
+
+                        <Button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-indigo-600 text-white p-3.5 rounded-xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-70 shadow-lg shadow-indigo-200"
+                            isLoading={loading}
+                            className="w-full"
                         >
-                            {loading ? 'Gönderiliyor...' : 'Bağlantı Gönder'}
-                        </button>
+                            Bağlantı Gönder
+                        </Button>
                     </form>
                 )}
             </div>

@@ -4,11 +4,28 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { ArrowLeft, Search, Volume2, CheckCircle, Circle, ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
+import { UserProgress } from '@/types';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
+
+interface HistoryItem {
+    updated_at: string;
+    is_mastered: boolean;
+    next_review: string;
+    vocabulary: {
+        word: string;
+        meaning: string;
+        type: string;
+        audio_url?: string;
+        example_en: string;
+        example_tr: string;
+    }
+}
 
 const ITEMS_PER_PAGE = 10;
 
 export default function History() {
-    const [words, setWords] = useState<any[]>([]);
+    const [words, setWords] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<'all' | 'mastered' | 'learning'>('all');
@@ -39,7 +56,7 @@ export default function History() {
 
         const { data, count } = await query.range(from, to);
 
-        if (data) setWords(data);
+        if (data) setWords(data as any);
         if (count) setTotalCount(count);
         setLoading(false);
     };
@@ -48,7 +65,7 @@ export default function History() {
         fetchHistory();
     }, [page, filter]);
 
-    const playAudio = (url: string, text: string) => {
+    const playAudio = (url: string | undefined, text: string) => { // url undefined olabilir
         if (url) new Audio(url).play().catch(() => { });
         else {
             const u = new SpeechSynthesisUtterance(text);
@@ -66,23 +83,23 @@ export default function History() {
     const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 font-sans flex flex-col items-center">
+        <div className="min-h-screen bg-slate-50 px-4 pt-6 pb-10 font-sans flex flex-col items-center">
             <div className="w-full max-w-3xl">
 
-                <div className="flex items-center gap-4 mb-6 mt-2">
+                <div className="flex items-center gap-4 mb-6">
                     <Link href="/dashboard" className="p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 transition"><ArrowLeft size={24} /></Link>
                     <h1 className="text-2xl font-bold text-slate-800">Kelime Geçmişim</h1>
                 </div>
 
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col gap-4">
                     <div className="relative w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input
-                            type="text"
+                        <Input
+                            label=""
                             placeholder="Kelime ara..."
-                            className="w-full pl-10 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            icon={<Search size={20} />}
+                            className="mb-0" // Input component has mb-4 by default
                         />
                     </div>
 

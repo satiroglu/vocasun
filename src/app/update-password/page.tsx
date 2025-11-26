@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { Lock, Eye, EyeOff, Save, CheckCircle, AlertCircle, Sun } from 'lucide-react';
 import Link from 'next/link';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 
 export default function UpdatePassword() {
     const router = useRouter();
@@ -12,10 +14,6 @@ export default function UpdatePassword() {
     const [loading, setLoading] = useState(false);
     const [showPass, setShowPass] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-
-    // Supabase, şifre sıfırlama linkine tıklandığında kullanıcıyı otomatik olarak
-    // "Password Recovery" oturumuyla giriş yapmış sayar. 
-    // Bizim tek yapmamız gereken updateUser ile şifreyi güncellemek.
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,36 +59,34 @@ export default function UpdatePassword() {
                 )}
 
                 <form onSubmit={handleUpdate} className="space-y-6">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">Yeni Şifre</label>
-                        <div className="relative">
-                            <input
-                                type={showPass ? "text" : "password"}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full p-3 pl-10 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
-                                placeholder="••••••"
-                                required
-                            />
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <button
-                                type="button"
-                                onClick={() => setShowPass(!showPass)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                            >
-                                {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
-                            </button>
-                        </div>
+                    <div className="relative">
+                        <Input
+                            label="Yeni Şifre"
+                            type={showPass ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••"
+                            required
+                            className="pr-10"
+                            icon={<Lock size={18} />}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPass(!showPass)}
+                            className="absolute right-3 top-[38px] text-slate-400 hover:text-slate-600"
+                        >
+                            {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                     </div>
 
-                    <button
+                    <Button
                         type="submit"
-                        disabled={loading}
-                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white p-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 disabled:opacity-70"
+                        isLoading={loading}
+                        className="w-full"
+                        icon={!loading && <Save size={20} />}
                     >
-                        {loading ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
-                        {!loading && <Save size={20} />}
-                    </button>
+                        Şifreyi Güncelle
+                    </Button>
                 </form>
             </div>
         </div>

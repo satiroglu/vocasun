@@ -1,69 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Search, Volume2, CheckCircle, Circle, ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
-import { UserProgress } from '@/types';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
-
-interface HistoryItem {
-    updated_at: string;
-    is_mastered: boolean;
-    next_review: string;
-    vocabulary: {
-        word: string;
-        meaning: string;
-        type: string;
-        audio_url?: string;
-        example_en: string;
-        example_tr: string;
-    }
-}
+import { useUser } from '@/hooks/useUser';
+import { useHistory } from '@/hooks/useHistory';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function History() {
-    const [words, setWords] = useState<HistoryItem[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { user } = useUser();
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<'all' | 'mastered' | 'learning'>('all');
-
     const [page, setPage] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
 
-    const fetchHistory = async () => {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        let query = supabase
-            .from('user_progress')
-            .select(`
-        updated_at,
-        is_mastered,
-        vocabulary ( word, meaning, audio_url, type, example_en, example_tr )
-      `, { count: 'exact' })
-            .eq('user_id', user.id)
-            .order('updated_at', { ascending: false });
-
-        if (filter === 'mastered') query = query.eq('is_mastered', true);
-        if (filter === 'learning') query = query.eq('is_mastered', false);
-
-        const from = (page - 1) * ITEMS_PER_PAGE;
-        const to = from + ITEMS_PER_PAGE - 1;
-
-        const { data, count } = await query.range(from, to);
-
-        if (data) setWords(data as any);
-        if (count) setTotalCount(count);
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        fetchHistory();
-    }, [page, filter]);
+    const { data, isLoading: loading } = useHistory(user?.id, page, filter, ITEMS_PER_PAGE);
+    
+    const words = data?.items || [];
+    const totalCount = data?.totalCount || 0;
 
     const playAudio = (url: string | undefined, text: string) => { // url undefined olabilir
         if (url) new Audio(url).play().catch(() => { });

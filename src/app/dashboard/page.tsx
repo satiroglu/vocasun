@@ -118,8 +118,12 @@ export default function Dashboard() {
                             <Link href="/learn" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3.5 rounded-xl font-bold hover:bg-indigo-50 transition shadow-lg active:scale-95">
                                 <BookOpen size={20} /> Çalış
                             </Link>
-                            <Link href="/leaderboard" className="inline-flex items-center gap-2 bg-white/20 text-white border border-white/30 px-6 py-3.5 rounded-xl font-bold hover:bg-white/30 transition shadow-lg backdrop-blur-sm active:scale-95">
-                                <Trophy size={20} /> Liderlik Tablosu
+                            <Link
+                                href="/leaderboard"
+                                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-white/20 transition shadow-lg active:scale-95"
+                            >
+                                <Trophy size={20} className="text-yellow-300" /> {/* İkonu sarı yaptık */}
+                                Liderlik Tablosu
                             </Link>
                         </div>
                     </div>

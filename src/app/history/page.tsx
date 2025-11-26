@@ -79,7 +79,7 @@ export default function History() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input
                             type="text"
-                            placeholder="Bu sayfada ara..."
+                            placeholder="Kelime ara..."
                             className="w-full pl-10 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -89,7 +89,7 @@ export default function History() {
                     <div className="flex gap-2 overflow-x-auto pb-1">
                         <button onClick={() => { setFilter('all'); setPage(1); }} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition ${filter === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Tümü ({totalCount})</button>
                         <button onClick={() => { setFilter('mastered'); setPage(1); }} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition ${filter === 'mastered' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}>Öğrenilen</button>
-                        <button onClick={() => { setFilter('learning'); setPage(1); }} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition ${filter === 'learning' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}>Çalışılan / Bilinmeyen</button>
+                        <button onClick={() => { setFilter('learning'); setPage(1); }} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition ${filter === 'learning' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}>Çalışılıyor</button>
                     </div>
                 </div>
 

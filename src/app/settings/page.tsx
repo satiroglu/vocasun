@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, User, Lock, Mail, Save, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, User, Lock, Mail, Save, AlertCircle, CheckCircle, Eye, EyeOff, Eye as EyeIcon } from 'lucide-react';
 
-// --- Yardımcı Bileşen (Lag sorununu çözmek için dışarı alındı) ---
+// --- Yardımcı Bileşen ---
 const PasswordInput = ({ label, value, onChange, show, onToggleShow }: any) => (
     <div className="mb-4">
         <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">{label}</label>
@@ -35,9 +35,14 @@ export default function Settings() {
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [emailUpdateMsg, setEmailUpdateMsg] = useState('');
 
-    // Profil Verileri
+    // Profil Verileri (displayPreference eklendi)
     const [formData, setFormData] = useState({
-        id: '', firstName: '', lastName: '', username: '', email: ''
+        id: '',
+        firstName: '',
+        lastName: '',
+        username: '',
+        email: '',
+        displayPreference: 'username' // Varsayılan
     });
 
     // Şifre State'leri
@@ -57,7 +62,8 @@ export default function Settings() {
                 firstName: data?.first_name || '',
                 lastName: data?.last_name || '',
                 username: data?.username || '',
-                email: user.email || ''
+                email: user.email || '',
+                displayPreference: data?.display_name_preference || 'username'
             });
             setLoading(false);
         };
@@ -70,13 +76,14 @@ export default function Settings() {
         setMessage(null);
 
         try {
-            // 1. Profil Güncelle
+            // 1. Profil Güncelle (Tercih dahil)
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
                     first_name: formData.firstName,
                     last_name: formData.lastName,
                     username: formData.username,
+                    display_name_preference: formData.displayPreference
                 })
                 .eq('id', formData.id);
 
@@ -106,10 +113,10 @@ export default function Settings() {
                 const { error: updateError } = await supabase.auth.updateUser({ password: passwords.new });
                 if (updateError) throw updateError;
 
-                setPasswords({ current: '', new: '', confirm: '' }); // Temizle
+                setPasswords({ current: '', new: '', confirm: '' });
             }
 
-            setMessage({ type: 'success', text: 'Profil başarıyla güncellendi!' });
+            setMessage({ type: 'success', text: 'Ayarlar başarıyla kaydedildi!' });
         } catch (error: any) {
             if (error.code === '23505') setMessage({ type: 'error', text: 'Bu kullanıcı adı zaten alınmış.' });
             else setMessage({ type: 'error', text: error.message || 'Bir hata oluştu.' });
@@ -136,12 +143,13 @@ export default function Settings() {
                 )}
 
                 <form onSubmit={updateProfile} className="space-y-6">
+
+                    {/* KİŞİSEL BİLGİLER */}
                     <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
                             <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><User size={24} /></div>
                             <h2 className="text-lg font-bold text-slate-800">Kişisel Bilgiler</h2>
                         </div>
-                        {/* ... (Kişisel bilgiler inputları aynı kalabilir) ... */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">Ad</label>
@@ -156,7 +164,7 @@ export default function Settings() {
                             <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">Kullanıcı Adı</label>
                             <input value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 outline-none" />
                         </div>
-                        <div className="mb-4">
+                        <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1 ml-1">E-posta</label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-3.5 text-slate-400" size={18} />
@@ -170,13 +178,56 @@ export default function Settings() {
                         </div>
                     </section>
 
+                    {/* GÖRÜNÜM AYARLARI (YENİ) */}
+                    <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
+                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><EyeIcon size={24} /></div>
+                            <h2 className="text-lg font-bold text-slate-800">Görünüm & Gizlilik</h2>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-3 ml-1">Liderlik Tablosunda Hangi İsim Görünsün?</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition ${formData.displayPreference === 'username' ? 'border-indigo-500 bg-indigo-50 text-indigo-900' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                    <input
+                                        type="radio"
+                                        name="displayPref"
+                                        value="username"
+                                        checked={formData.displayPreference === 'username'}
+                                        onChange={() => setFormData({ ...formData, displayPreference: 'username' })}
+                                        className="w-4 h-4 text-indigo-600"
+                                    />
+                                    <div>
+                                        <div className="font-bold text-sm">Kullanıcı Adı</div>
+                                        <div className="text-xs opacity-70">Örn: @{formData.username}</div>
+                                    </div>
+                                </label>
+
+                                <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition ${formData.displayPreference === 'fullname' ? 'border-indigo-500 bg-indigo-50 text-indigo-900' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                    <input
+                                        type="radio"
+                                        name="displayPref"
+                                        value="fullname"
+                                        checked={formData.displayPreference === 'fullname'}
+                                        onChange={() => setFormData({ ...formData, displayPreference: 'fullname' })}
+                                        className="w-4 h-4 text-indigo-600"
+                                    />
+                                    <div>
+                                        <div className="font-bold text-sm">Ad Soyad</div>
+                                        <div className="text-xs opacity-70">Örn: {formData.firstName} {formData.lastName}</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* ŞİFRE DEĞİŞTİRME */}
                     <section className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
                             <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Lock size={24} /></div>
                             <h2 className="text-lg font-bold text-slate-800">Şifre Değiştir</h2>
                         </div>
 
-                        {/* Bileşeni artık prop geçerek kullanıyoruz */}
                         <PasswordInput
                             label="Mevcut Şifre"
                             value={passwords.current}

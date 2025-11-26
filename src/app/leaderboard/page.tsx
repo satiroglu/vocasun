@@ -13,7 +13,7 @@ export default function Leaderboard() {
         const fetchLeaders = async () => {
             const { data } = await supabase
                 .from('profiles')
-                .select('username, first_name, total_xp, level')
+                .select('username, first_name, last_name, total_xp, level, display_name_preference') // last_name ve display_name_preference eklendi
                 .order('total_xp', { ascending: false })
                 .limit(20);
             if (data) setLeaders(data);
@@ -52,13 +52,21 @@ export default function Leaderboard() {
                                 icon = <div className="w-8 flex justify-center"><Star className="text-orange-600 fill-orange-600" size={20} /></div>;
                             }
 
+                            let displayName = user.username; // Varsayılan
+                            if (user.display_name_preference === 'fullname') {
+                                displayName = `${user.first_name} ${user.last_name}`;
+                            } else if (!user.username) {
+                                // Eğer kullanıcı adı tercih etmiş ama girmemişse (yedek)
+                                displayName = user.first_name || 'Gizli Kullanıcı';
+                            }
+
                             return (
                                 <div key={index} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${rankStyle}`}>
                                     <div className="flex items-center gap-4">
                                         {icon}
                                         <div>
                                             <div className="font-bold flex items-center gap-2">
-                                                {user.username || user.first_name || 'Gizli'}
+                                                {displayName}
                                                 {index === 0 && <span className="text-xs bg-yellow-200 text-yellow-800 px-2 rounded-full">Lider</span>}
                                             </div>
                                             <div className="text-xs opacity-70">Seviye {user.level || 1}</div>

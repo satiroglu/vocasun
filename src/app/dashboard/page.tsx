@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sun, LogOut, BookOpen, Trophy, TrendingUp, Activity, Settings, Clock, ChevronRight, Volume2 } from 'lucide-react';
+import { Sun, LogOut, BookOpen, Trophy, TrendingUp, Activity, Settings, Clock, ChevronRight, Volume2, HelpCircle } from 'lucide-react';
 
 export default function Dashboard() {
     const router = useRouter();
@@ -95,6 +95,13 @@ export default function Dashboard() {
                             <div className="text-sm font-bold text-slate-800">{profile?.username}</div>
                             <div className="text-xs text-slate-500 font-medium">{profile?.total_xp} XP</div>
                         </div>
+                        <Link
+                            href="/info"
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                            title="Nasıl Çalışır?"
+                        >
+                            <HelpCircle size={20} />
+                        </Link>
                         <Link href="/settings" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"><Settings size={20} /></Link>
                         <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><LogOut size={20} /></button>
                     </div>

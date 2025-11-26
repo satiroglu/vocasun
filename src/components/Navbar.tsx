@@ -46,7 +46,9 @@ export default function Navbar() {
         { name: 'Ayarlar', href: '/settings', icon: Settings },
     ];
 
-    if (pathname === '/login' || pathname === '/register') return null;
+    // Auth sayfalarında navbar gösterme
+    const authPages = ['/login', '/register', '/forgot-password', '/update-password'];
+    if (authPages.includes(pathname)) return null;
 
     return (
         <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-all duration-300 h-16">
@@ -93,16 +95,21 @@ export default function Navbar() {
                     <div className="hidden md:flex items-center gap-4 shrink-0">
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                                <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center border border-indigo-100">
-                                    <User size={18} />
-                                </div>
-
-                                <div className="text-right hidden lg:block leading-tight">
-                                    <div className="text-sm font-bold text-slate-800">{getDisplayName()}</div>
-                                    <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 rounded inline-block">
-                                        {profile ? `${profile.total_xp} XP` : '...'}
+                                <Link 
+                                    href={profile?.username ? `/profile/${profile.username}` : '/dashboard'} 
+                                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
+                                >
+                                    <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center border border-indigo-100 group-hover:border-indigo-300 transition-colors">
+                                        <User size={18} />
                                     </div>
-                                </div>
+
+                                    <div className="text-right hidden lg:block leading-tight">
+                                        <div className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{getDisplayName()}</div>
+                                        <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 rounded inline-block">
+                                            {profile ? `${profile.total_xp} XP` : '...'}
+                                        </div>
+                                    </div>
+                                </Link>
 
                                 <button
                                     onClick={handleLogout}
@@ -156,7 +163,11 @@ export default function Navbar() {
                         <div className="px-4 pt-4 pb-6 space-y-2 max-h-[80vh] overflow-y-auto">
                             {user ? (
                                 <>
-                                    <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-4">
+                                    <Link 
+                                        href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-4 hover:bg-slate-100 transition-colors active:scale-[0.98]"
+                                    >
                                         <div className="bg-white p-2.5 rounded-full shadow-sm text-indigo-600">
                                             <User size={20} />
                                         </div>
@@ -164,7 +175,7 @@ export default function Navbar() {
                                             <div className="font-bold text-slate-900">{getDisplayName()}</div>
                                             <div className="text-xs font-medium text-slate-500">{profile ? `${profile.total_xp} XP` : '...'}</div>
                                         </div>
-                                    </div>
+                                    </Link>
 
                                     {navLinks.map((link) => {
                                         const isActive = pathname === link.href;

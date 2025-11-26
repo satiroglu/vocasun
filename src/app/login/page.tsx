@@ -90,27 +90,27 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 flex flex-col items-center justify-center p-4 sm:p-6">
 
             {/* Logo */}
-            <Link href="/" className="mb-8 flex items-center gap-2 text-indigo-600 font-bold text-2xl hover:opacity-80 transition">
-                <Sun className="w-8 h-8" />
+            <Link href="/" className="mb-6 sm:mb-8 flex items-center gap-2.5 text-indigo-600 font-bold text-2xl sm:text-3xl hover:opacity-80 transition group">
+                <Sun className="w-8 h-8 sm:w-10 sm:h-10 group-hover:rotate-180 transition-transform duration-700" />
                 <span>Vocasun</span>
             </Link>
 
-            <div className="bg-white w-full max-w-md p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-100">
-                <div className="flex items-center mb-6">
-                    <Link href="/" className="text-slate-400 hover:text-slate-600 transition mr-auto">
-                        <ArrowLeft size={20} />
+            <div className="bg-white w-full max-w-md p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl shadow-indigo-100/50 border border-slate-200/50">
+                <div className="flex items-center mb-6 sm:mb-8">
+                    <Link href="/" className="text-slate-400 hover:text-slate-600 transition mr-3 sm:mr-4 -ml-1 p-1 hover:bg-slate-50 rounded-lg">
+                        <ArrowLeft size={22} />
                     </Link>
-                    <h2 className="text-2xl font-bold text-slate-900 mr-auto pr-5">Giriş Yap</h2>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Giriş Yap</h2>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                     {errorMsg && (
-                        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                            <div className="text-red-500 mt-0.5">⚠️</div>
-                            <div className="text-sm text-red-700">{errorMsg}</div>
+                        <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                            <div className="text-red-500 mt-0.5 text-lg">⚠️</div>
+                            <div className="text-sm text-red-700 leading-relaxed">{errorMsg}</div>
                         </div>
                     )}
 
@@ -132,28 +132,34 @@ export default function Login() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
-                                className="pr-10"
+                                className="pr-12"
                             />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[38px] text-slate-400 hover:text-slate-600">
+                            <button 
+                                type="button" 
+                                onClick={() => setShowPassword(!showPassword)} 
+                                className="absolute right-3 top-[38px] text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                            >
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
-                        <div className="flex justify-end -mt-3">
-                            <Link href="/forgot-password" className="text-xs text-indigo-600 hover:underline">Şifremi unuttum?</Link>
+                        <div className="flex justify-end mt-2">
+                            <Link href="/forgot-password" className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-medium hover:underline">
+                                Şifremi unuttum?
+                            </Link>
                         </div>
                     </div>
 
                     <Button
                         type="submit"
                         isLoading={loading}
-                        className="w-full"
+                        className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold"
                     >
                         Giriş Yap
                     </Button>
                 </form>
 
-                <p className="text-center mt-8 text-slate-600 text-sm">
-                    Hesabın yok mu? <Link href="/register" className="text-indigo-600 font-bold hover:underline">Kayıt Ol</Link>
+                <p className="text-center mt-6 sm:mt-8 text-slate-600 text-sm sm:text-base">
+                    Hesabın yok mu? <Link href="/register" className="text-indigo-600 font-bold hover:text-indigo-700 hover:underline">Kayıt Ol</Link>
                 </p>
             </div>
 

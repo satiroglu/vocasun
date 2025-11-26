@@ -1,18 +1,17 @@
 'use client';
 
-import Link from 'next/link';
-import { ArrowLeft, Brain, Trophy, CheckCircle, Clock, Sparkles, Sun, Target, TrendingUp, BookOpen, PenTool, LayoutGrid } from 'lucide-react';
+import { Info as InfoIcon, Brain, Trophy, CheckCircle, Clock, Sparkles, Sun, Target, TrendingUp, BookOpen, PenTool, LayoutGrid } from 'lucide-react';
 
 export default function Info() {
     return (
-        <div className="min-h-screen bg-slate-50 px-4 pt-6 pb-10 font-sans flex flex-col items-center">
+        <div className="min-h-screen bg-slate-50 px-4 pt-20 pb-10 font-sans flex flex-col items-center">
             <div className="w-full max-w-3xl">
 
                 {/* --- STANDART HEADER (Diğer sayfalarla uyumlu) --- */}
                 <div className="flex items-center gap-4 mb-8">
-                    <Link href="/dashboard" className="p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 transition">
-                        <ArrowLeft size={24} />
-                    </Link>
+                    <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-indigo-600">
+                        <InfoIcon size={24} />
+                    </div>
                     <h1 className="text-2xl font-bold text-slate-800">Sistem Nasıl Çalışıyor?</h1>
                 </div>
 

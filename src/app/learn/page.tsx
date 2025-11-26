@@ -147,7 +147,7 @@ export default function Learn() {
 
     // RENDER: LOADING
     if (sessionLoading) return (
-        <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-slate-50">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-slate-50 pt-16">
             <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
             <p className="mt-4 text-indigo-600 font-bold animate-pulse">Oturum Hazırlanıyor...</p>
         </div>
@@ -155,7 +155,7 @@ export default function Learn() {
 
     // --- RENDER: SONUÇ EKRANI (SESSION FINISHED) ---
     if (isSessionFinished) return (
-        <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-slate-50 text-center font-sans">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-slate-50 text-center font-sans pt-16">
             <div className="bg-white p-8 sm:p-12 rounded-[2rem] shadow-xl border border-slate-100 w-full max-w-md animate-scale-up">
                 <div className="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-200">
                     <Trophy size={40} className="fill-yellow-600" />
@@ -191,10 +191,11 @@ export default function Learn() {
     // --- RENDER: AKTİF SORU EKRANI ---
     return (
         // 100dvh: Mobil tarayıcılar için tam ekran yüksekliği
-        <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative">
+        // pt-16: Navbar için alan bırak
+        <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-16">
 
             {/* --- HEADER: Progress & Tools --- */}
-            <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16">
+            <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16 fixed top-16 left-0 right-0">
                 <Link href="/dashboard" className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><ArrowLeft size={24} /></Link>
 
                 {/* Progress Bar */}
@@ -219,7 +220,8 @@ export default function Learn() {
             </div>
 
             {/* --- MAIN CONTENT AREA --- */}
-            <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto">
+            {/* mt-16: İkinci header için alan bırak */}
+            <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-16">
 
                 <div className="flex-1 flex flex-col items-center justify-center p-6 w-full min-h-full">
 

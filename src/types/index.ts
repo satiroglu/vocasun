@@ -6,10 +6,13 @@ export interface Profile {
     email: string;
     total_xp: number;
     level: number;
-    daily_goal: number; // YENİ: Günlük kelime hedefi
-    bio?: string;       // YENİ: Profil biyografisi
+    daily_goal: number;
+    bio?: string;
     avatar_url?: string;
     display_name_preference: 'username' | 'fullname';
+    leaderboard_visibility?: 'visible' | 'anonymous' | 'hidden'; // YENİ: Liderlik tablosu gizliliği
+    preferred_word_list?: 'general' | 'academic' | 'business' | 'toefl' | 'ielts'; // YENİ: Tercih edilen kelime listesi
+    difficulty_level?: 'beginner' | 'intermediate' | 'advanced' | 'mixed'; // YENİ: Zorluk seviyesi
     created_at: string;
     marked_for_deletion_at?: string | null;
 }

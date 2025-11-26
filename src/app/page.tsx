@@ -10,7 +10,7 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
 
       {/* --- Hero Section --- */}
-      <header className="relative pt-12 pb-24 lg:pt-24 lg:pb-32 overflow-hidden">
+      <header className="relative pt-28 pb-24 lg:pt-32 lg:pb-32 overflow-hidden">
         {/* Dynamic Background Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-400/20 rounded-full blur-[100px] animate-pulse"></div>

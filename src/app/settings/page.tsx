@@ -41,7 +41,11 @@ export default function Settings() {
     useEffect(() => {
         const fetchProfile = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { router.push('/login'); return; }
+            if (!user) {
+                setLoading(false);
+                router.push('/login');
+                return;
+            }
             const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
             setFormData({
@@ -229,7 +233,7 @@ export default function Settings() {
                         </div>
 
                         <div className="flex justify-end">
-                            <Button type="submit" isLoading={savingPersonal} icon={!savingPersonal && <Save size={18} />}>
+                            <Button type="submit" isLoading={savingPersonal} icon={!savingPersonal && <Save size={16} />}>
                                 Bilgileri Kaydet
                             </Button>
                         </div>
@@ -239,29 +243,8 @@ export default function Settings() {
                 {/* 2. GÖRÜNÜM & GİZLİLİK */}
                 <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
-                        <div className="p-2 bg-purple-100 text-purple-600 rounded-xl"><EyeIcon size={24} /></div>
+                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><EyeIcon size={24} /></div>
                         <h2 className="text-xl font-bold text-slate-800">Görünüm & Gizlilik</h2>
-                    </div>
-
-                    <div className="mb-6">
-                        <label className="block text-xs font-bold text-slate-500 mb-4 ml-1 uppercase tracking-wide">Liderlik Tablosunda Hangi İsim Görünsün?</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <label className={`relative flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.displayPreference === 'username' ? 'border-purple-600 bg-purple-50/50' : 'border-slate-100 hover:border-purple-200'}`}>
-                                <input type="radio" name="displayPref" value="username" checked={formData.displayPreference === 'username'} onChange={() => setFormData({ ...formData, displayPreference: 'username' })} className="w-5 h-5 text-purple-600 focus:ring-purple-500" />
-                                <div>
-                                    <div className="font-bold text-slate-800">Kullanıcı Adı</div>
-                                    <div className="text-xs text-slate-500 font-medium mt-0.5">@{formData.username}</div>
-                                </div>
-                            </label>
-
-                            <label className={`relative flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.displayPreference === 'fullname' ? 'border-purple-600 bg-purple-50/50' : 'border-slate-100 hover:border-purple-200'}`}>
-                                <input type="radio" name="displayPref" value="fullname" checked={formData.displayPreference === 'fullname'} onChange={() => setFormData({ ...formData, displayPreference: 'fullname' })} className="w-5 h-5 text-purple-600 focus:ring-purple-500" />
-                                <div>
-                                    <div className="font-bold text-slate-800">Ad Soyad</div>
-                                    <div className="text-xs text-slate-500 font-medium mt-0.5">{formData.firstName} {formData.lastName}</div>
-                                </div>
-                            </label>
-                        </div>
                     </div>
 
                     <div className="flex justify-end">
@@ -274,7 +257,7 @@ export default function Settings() {
                 {/* 3. BİLDİRİM AYARLARI (YENİ - PROFESYONEL GÖRÜNÜM) */}
                 <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
-                        <div className="p-2 bg-amber-100 text-amber-600 rounded-xl"><Bell size={24} /></div>
+                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><Bell size={24} /></div>
                         <h2 className="text-xl font-bold text-slate-800">Bildirim Ayarları</h2>
                     </div>
 
@@ -312,7 +295,7 @@ export default function Settings() {
                 {/* 4. ŞİFRE DEĞİŞTİRME */}
                 <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
-                        <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Lock size={24} /></div>
+                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><Lock size={24} /></div>
                         <h2 className="text-xl font-bold text-slate-800">Şifre Değiştir</h2>
                     </div>
 

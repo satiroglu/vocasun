@@ -22,16 +22,22 @@ export default function Learn() {
     const [flipped, setFlipped] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
 
+    const [isProcessing, setIsProcessing] = useState(false);
+
     // --- 1. AKILLI SORU ÇEKME (SRS) ---
     const fetchQuestion = async () => {
         setLoading(true);
+        setIsProcessing(false); // KİLİDİ AÇ
         setStatus('idle');
         setUserInput('');
         setFlipped(false);
         setWords([]);
 
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
 
         const { data: targetData, error } = await supabase
             .rpc('get_study_word', { user_id_input: user.id })
@@ -132,14 +138,23 @@ export default function Learn() {
     };
 
     const handleCorrect = async () => {
+        if (isProcessing) return; // Zaten işlem yapılıyorsa dur
+        setIsProcessing(true);
+
         setStatus('success');
         playAudio();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) await supabase.rpc('increment_score', { row_id: user.id });
         await saveProgress(true);
+
+        // Buton kilidini bir sonraki soru geldiğinde fetchQuestion içinde kaldıracağız 
+        // veya manuel olarak false yapabiliriz ama status 'success' olduğu için UI zaten değişiyor.
     };
 
     const handleWrong = async () => {
+        if (isProcessing) return; // Zaten işlem yapılıyorsa dur
+        setIsProcessing(true);
+
         setStatus('error');
         playAudio();
         await saveProgress(false);
@@ -178,9 +193,9 @@ export default function Learn() {
 
             {/* Navbar */}
             <div className="w-full max-w-lg flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                <div className="flex items-center w-full sm:w-auto">
+                {/* <div className="flex items-center w-full sm:w-auto">
                     <Link href="/dashboard" className="p-2 text-slate-500 hover:bg-slate-200 rounded-full"><ArrowLeft size={24} /></Link>
-                </div>
+                </div> */}
                 <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200 w-full sm:w-auto">
                     <button onClick={() => setMode('write')} className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition text-sm font-bold ${mode === 'write' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`}><PenTool size={16} /> Yaz</button>
                     <button onClick={() => setMode('choice')} className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition text-sm font-bold ${mode === 'choice' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`}><LayoutGrid size={16} /> Seç</button>
@@ -231,6 +246,7 @@ export default function Learn() {
                                         <button
                                             type="button"
                                             onClick={handleWrong}
+                                            disabled={isProcessing}
                                             className="w-full sm:flex-1 bg-white border border-slate-200 text-slate-500 py-4 rounded-xl font-bold hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-center gap-2"
                                         >
                                             <SkipForward size={18} /> Bilmiyorum
@@ -239,6 +255,7 @@ export default function Learn() {
                                         {/* Kontrol Et Butonu */}
                                         <button
                                             type="submit"
+                                            disabled={isProcessing}
                                             className="w-full sm:flex-[2] bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg active:scale-[0.98]"
                                         >
                                             Kontrol Et
@@ -254,7 +271,7 @@ export default function Learn() {
                             <h2 className="text-3xl font-extrabold text-slate-800 mb-8">{correctWord.meaning}</h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                                 {words.map((item) => (
-                                    <button key={item.id} onClick={() => checkChoice(item.word)} disabled={status !== 'idle'}
+                                    <button key={item.id} onClick={() => checkChoice(item.word)} disabled={status !== 'idle' || isProcessing}
                                         className={`p-4 rounded-xl font-bold border-2 transition text-lg 
                                         ${status === 'success' && item.word === correctWord.word ? 'bg-green-500 text-white border-green-500' : ''}
                                         ${status === 'error' && item.word === correctWord.word ? 'bg-green-500 text-white border-green-500' : ''} 

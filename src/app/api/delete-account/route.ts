@@ -1,42 +1,68 @@
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers'; // Next.js 15/16 için
 
 export async function DELETE(request: Request) {
-    // 1. İsteği yapan kullanıcının oturumunu kontrol et (Güvenlik)
-    // Not: Burada normal client kullanıyoruz çünkü cookie'den oturum okuyacağız
-    // Ancak Next.js 16'da cookie yönetimi değiştiği için en basit yöntem:
-    // Kullanıcı ID'sini body'den almak yerine, Authorization header'dan veya
-    // Supabase'in auth helper'ıyla almak gerekir.
-
-    // Basitlik ve MVP için Service Role ile işlem yapacağız.
-    // DİKKAT: Bu işlem çok kritiktir. Prod ortamında middleware koruması olduğundan emin ol.
-
     try {
-        const requestBody = await request.json();
-        const { userId } = requestBody;
+        // 1. Çerez deposunu al
+        const cookieStore = await cookies();
 
-        if (!userId) {
-            return NextResponse.json({ error: 'User ID gerekli' }, { status: 400 });
-        }
-
-        // 2. Admin yetkisiyle Supabase'e bağlan (Service Role Key ile)
-        const supabaseAdmin = createClient(
+        // 2. İsteği yapan kullanıcının oturumunu doğrula
+        const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY! // .env dosyana bunu eklemelisin!
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        try {
+                            cookiesToSet.forEach(({ name, value, options }) =>
+                                cookieStore.set(name, value, options)
+                            );
+                        } catch {
+                            // Server Component context'inde cookie set edilemeyebilir, güvenli yoksayma
+                        }
+                    },
+                },
+            }
         );
 
-        // 3. Kullanıcıyı Auth sisteminden sil
-        // Bu işlem, veritabanındaki 'profiles' tablosunda 'ON DELETE CASCADE' varsa orayı da siler.
-        const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        // 3. Oturum açmış kullanıcıyı al
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Oturum açmanız gerekiyor.' }, { status: 401 });
         }
 
-        return NextResponse.json({ message: 'Hesap başarıyla silindi' });
+        // 4. Body'den gelen ID'yi al (opsiyonel, çünkü zaten user.id'yi kullanacağız)
+        // Güvenlik için body'deki ID'ye güvenmek yerine, token'dan gelen user.id'yi kullanıyoruz.
+        // Ancak admin işlemi için service role gerekiyorsa, ID kontrolü şarttır.
 
-    } catch (error) {
-        return NextResponse.json({ error: 'Sunucu hatası' }, { status: 500 });
+        // Kendi hesabını silme senaryosu:
+        const supabaseAdmin = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!, // .env dosyasında olduğundan emin olun
+            {
+                cookies: {
+                    getAll() { return [] },
+                    setAll() { }
+                }
+            }
+        );
+
+        // Kullanıcıyı sil
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+
+        if (deleteError) {
+            console.error("Silme hatası:", deleteError);
+            return NextResponse.json({ error: 'Silme işlemi başarısız.' }, { status: 500 });
+        }
+
+        return NextResponse.json({ message: 'Hesap başarıyla silindi.' });
+
+    } catch (error: any) {
+        return NextResponse.json({ error: 'Sunucu hatası: ' + error.message }, { status: 500 });
     }
 }

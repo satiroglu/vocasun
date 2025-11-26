@@ -27,7 +27,7 @@ export default function Leaderboard() {
         <div className="min-h-screen bg-slate-50 px-4 pt-6 pb-10 flex flex-col items-center font-sans">
             <div className="w-full max-w-2xl">
                 <div className="flex items-center gap-4 mb-8">
-                    <Link href="/dashboard" className="p-2 bg-white rounded-full shadow-sm text-slate-500 hover:text-indigo-600"><ArrowLeft size={24} /></Link>
+                    {/* <Link href="/dashboard" className="p-2 bg-white rounded-full shadow-sm text-slate-500 hover:text-indigo-600"><ArrowLeft size={24} /></Link> */}
                     <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                         <Trophy className="text-yellow-500" /> Liderlik Tablosu
                     </h1>

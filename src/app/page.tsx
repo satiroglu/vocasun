@@ -22,16 +22,16 @@ export default function Home() {
 
           {/* Left: Text Content */}
           <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-indigo-100 text-indigo-600 text-sm font-bold mb-8 shadow-sm hover:scale-105 transition cursor-default">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-indigo-100 text-indigo-600 text-sm font-bold mb-8 shadow-sm  transition cursor-default">
               <Sparkles size={16} className="fill-indigo-600" />
               <span>Yapay Zeka Destekli Öğrenme</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
-              Yabancı Dil <br />
+              Kelime Ezberleme, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600">
-                Yaşayarak
-              </span> Öğrenilir.
+                Kalıcı Öğren.
+              </span>
             </h1>
 
             <p className="text-lg md:text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0">

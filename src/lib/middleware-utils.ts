@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
+    // 1. Response oluştur (Cookie işlemleri için gerekli)
     let response = NextResponse.next({
         request: {
             headers: request.headers,
@@ -29,34 +30,37 @@ export async function updateSession(request: NextRequest) {
         }
     );
 
-    // Kullanıcıyı kontrol et
-    const { data: { user } } = await supabase.auth.getUser();
+    // PERFORMANS İYİLEŞTİRMESİ:
+    // getUser() yerine getSession() kullanıyoruz.
+    // getSession: Yerel cookie'deki JWT'yi kontrol eder (Çok hızlıdır).
+    // getUser: Sunucuya istek atar (Güvenlidir ama yavaştır).
+    // Middleware'de sadece session'ı yenilemek (refresh token) yeterlidir.
+    // Asıl güvenlik kontrolünü sayfa (page.tsx) tarafında yapmaya devam edeceksiniz.
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
 
     const path = request.nextUrl.pathname;
 
-    // Public Routes (Herkesin erişebileceği sayfalar)
+    // Public Routes
     const publicRoutes = ['/', '/login', '/register', '/auth/callback', '/forgot-password', '/update-password'];
-
-    // Statik dosyalar ve API route'ları hariç tutulmalı mı? 
-    // Matcher zaten statik dosyaları eliyor. API route'ları için ayrı kontrol gerekebilir ama şimdilik basit tutalım.
-
     const isPublicRoute = publicRoutes.some(route => path === route || path.startsWith(route + '/'));
 
-    // 1. Kullanıcı giriş yapmamışsa ve korumalı bir sayfaya girmeye çalışıyorsa -> Login'e at
+    // Yönlendirme Mantığı (Hala gerekli ama artık daha hızlı çalışacak)
+
+    // 1. Giriş yapmamış kullanıcı korumalı sayfaya girmeye çalışırsa -> Login
     if (!user && !isPublicRoute) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        // URL'i korumak için redirect yerine rewrite kullanmıyoruz, tam redirect yapıyoruz.
+        const url = request.nextUrl.clone();
+        url.pathname = '/login';
+        return NextResponse.redirect(url);
     }
 
-    // 2. Kullanıcı giriş yapmışsa ve Login/Register gibi sayfalara girmeye çalışıyorsa -> Dashboard'a at
+    // 2. Giriş yapmış kullanıcı Login/Register sayfasına girmeye çalışırsa -> Dashboard
     if (user && (path === '/login' || path === '/register' || path === '/')) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        const url = request.nextUrl.clone();
+        url.pathname = '/dashboard';
+        return NextResponse.redirect(url);
     }
-
-    // Güvenlik Header'ları Ekle
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
     return response;
 }

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
     User, Lock, Mail, Save, AlertCircle,
     CheckCircle, Eye, EyeOff, Eye as EyeIcon, Trash2,
-    AlertTriangle, Bell, Globe
+    AlertTriangle, Bell, Globe, Camera, Shield
 } from 'lucide-react';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
@@ -32,7 +32,7 @@ export default function Settings() {
     // Veriler
     const [formData, setFormData] = useState({
         id: '', firstName: '', lastName: '', username: '', email: '', displayPreference: 'username',
-        emailNotifications: true, marketingEmails: false // Yeni Alanlar
+        emailNotifications: true, marketingEmails: false
     });
 
     const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
@@ -41,11 +41,7 @@ export default function Settings() {
     useEffect(() => {
         const fetchProfile = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setLoading(false);
-                router.push('/login');
-                return;
-            }
+            if (!user) { router.push('/login'); return; }
             const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
             setFormData({
@@ -55,7 +51,7 @@ export default function Settings() {
                 username: data?.username || '',
                 email: user.email || '',
                 displayPreference: data?.display_name_preference || 'username',
-                emailNotifications: true, // Veritabanına eklenebilir, şimdilik local
+                emailNotifications: true,
                 marketingEmails: false
             });
             setLoading(false);
@@ -65,10 +61,10 @@ export default function Settings() {
 
     const showMessage = (type: 'success' | 'error', text: string) => {
         setMessage({ type, text });
-        setTimeout(() => setMessage(null), 4000); // 4 sn sonra mesajı gizle
+        setTimeout(() => setMessage(null), 4000);
     };
 
-    // --- 1. Kişisel Bilgileri Kaydet ---
+    // --- FONKSİYONLAR (Aynı mantık korundu) ---
     const savePersonalInfo = async (e: React.FormEvent) => {
         e.preventDefault();
         setSavingPersonal(true);
@@ -80,13 +76,11 @@ export default function Settings() {
 
             if (error) throw error;
 
-            // Email Güncelleme Kontrolü
             if (formData.email !== (await supabase.auth.getUser()).data.user?.email) {
                 const { error: emailError } = await supabase.auth.updateUser({ email: formData.email });
                 if (emailError) throw emailError;
                 setEmailUpdateMsg('Yeni e-posta adresinize doğrulama bağlantısı gönderildi.');
             }
-
             showMessage('success', 'Kişisel bilgiler güncellendi.');
         } catch (error: any) {
             showMessage('error', error.message);
@@ -95,7 +89,6 @@ export default function Settings() {
         }
     };
 
-    // --- 2. Görünüm Ayarlarını Kaydet ---
     const saveAppearance = async () => {
         setSavingAppearance(true);
         try {
@@ -112,17 +105,14 @@ export default function Settings() {
         }
     };
 
-    // --- 3. Bildirim Ayarlarını Kaydet (Mock) ---
     const saveNotifications = async () => {
         setSavingNotif(true);
-        // Burada veritabanı güncellemesi yapılabilir.
         setTimeout(() => {
             showMessage('success', 'Bildirim ayarları güncellendi.');
             setSavingNotif(false);
         }, 800);
     };
 
-    // --- 4. Şifreyi Kaydet ---
     const savePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         setSavingPassword(true);
@@ -132,7 +122,7 @@ export default function Settings() {
             if (passwords.new !== passwords.confirm) throw new Error("Yeni şifreler uyuşmuyor.");
 
             const { error: loginError } = await supabase.auth.signInWithPassword({
-                email: formData.email, // Mevcut email ile doğrula
+                email: formData.email,
                 password: passwords.current
             });
             if (loginError) throw new Error("Mevcut şifreniz hatalı.");
@@ -149,52 +139,80 @@ export default function Settings() {
         }
     };
 
-    // --- 5. Hesabı Sil (Soft Delete) ---
     const handleDeleteRequest = async () => {
         try {
             const deletionDate = new Date();
             deletionDate.setDate(deletionDate.getDate() + 14);
-
-            const { error } = await supabase
-                .from('profiles')
-                .update({ marked_for_deletion_at: deletionDate.toISOString() })
-                .eq('id', formData.id);
-
+            const { error } = await supabase.from('profiles').update({ marked_for_deletion_at: deletionDate.toISOString() }).eq('id', formData.id);
             if (error) throw error;
-
             setShowDeleteModal(false);
-            setShowDeleteSuccessModal(true); // Başarı modalını aç
+            setShowDeleteSuccessModal(true);
         } catch (error: any) {
             showMessage('error', "Hata: " + error.message);
         }
     };
 
-    if (loading) return <div className="min-h-screen pt-20 flex justify-center text-indigo-600">Yükleniyor...</div>;
+    // --- SKELETON LOADING COMPONENT ---
+    const SettingsSkeleton = () => (
+        <div className="w-full max-w-3xl space-y-8 animate-pulse">
+            <div className="h-8 w-48 bg-slate-200 rounded-lg mb-2"></div>
+            <div className="h-4 w-64 bg-slate-200 rounded-lg mb-8"></div>
+            {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white p-8 rounded-[2rem] border border-slate-100 h-64"></div>
+            ))}
+        </div>
+    );
+
+    if (loading) return <div className="min-h-screen pt-20 flex justify-center bg-slate-50"><SettingsSkeleton /></div>;
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 font-sans pt-6 pb-20">
 
-            <div className="w-full max-w-2xl mb-6">
-                <h1 className="text-3xl font-bold text-slate-900">Hesap Ayarları</h1>
-                <p className="text-slate-500">Profilini ve tercihlerini yönet.</p>
+            <div className="w-full max-w-3xl mb-8 flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900">Hesap Ayarları</h1>
+                    <p className="text-slate-500">Profilini ve tercihlerini yönet.</p>
+                </div>
+                {/* Avatar UI (Mock) */}
+                <div className="hidden sm:flex items-center gap-3 bg-white p-2 pr-4 rounded-full border border-slate-100 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                        {formData.firstName.charAt(0) || 'U'}
+                    </div>
+                    <div className="text-sm font-bold text-slate-700">
+                        {formData.firstName || 'Kullanıcı'}
+                    </div>
+                </div>
             </div>
 
-            <div className="w-full max-w-2xl space-y-8">
+            <div className="w-full max-w-3xl space-y-8">
 
                 {/* Global Mesaj */}
                 {message && (
-                    <div className={`p-4 rounded-2xl flex items-center gap-3 animate-fade-in-up sticky top-24 z-30 shadow-lg ${message.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
+                    <div className={`p-4 rounded-2xl flex items-center gap-3 animate-shake sticky top-24 z-30 shadow-xl ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
                         {message.type === 'success' ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
                         <span className="font-medium">{message.text}</span>
                     </div>
                 )}
 
-                {/* 1. KİŞİSEL BİLGİLER */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-50">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><User size={24} /></div>
-                            <h2 className="text-xl font-bold text-slate-800">Kişisel Bilgiler</h2>
+                {/* 1. KİŞİSEL BİLGİLER & AVATAR */}
+                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-8">
+                        <div className="relative group">
+                            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+                                <User size={40} className="text-slate-300" />
+                            </div>
+                            <button className="absolute bottom-0 right-0 p-2 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition hover:scale-110">
+                                <Camera size={16} />
+                            </button>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800">Profil Resmi</h2>
+                            <p className="text-sm text-slate-500 mb-2">Bu fotoğraf liderlik tablosunda görünecek.</p>
+                            <div className="flex gap-2">
+                                <button className="text-xs font-bold text-indigo-600 hover:underline">Yükle</button>
+                                <span className="text-slate-300">|</span>
+                                <button className="text-xs font-bold text-red-500 hover:underline">Kaldır</button>
+                            </div>
                         </div>
                     </div>
 
@@ -217,92 +235,149 @@ export default function Settings() {
                                 label="Kullanıcı Adı"
                                 value={formData.username}
                                 disabled
-                                className="bg-slate-100 text-slate-500 cursor-not-allowed"
+                                className="bg-slate-50 text-slate-500 cursor-not-allowed border-slate-100"
+                                icon={<span className="text-slate-400 text-sm font-bold">@</span>}
                             />
-                            <div className="text-xs text-slate-400 font-medium text-right mt-1">Değiştirilemez</div>
                         </div>
 
-                        <div className="mb-6">
+                        <div className="mb-8">
                             <Input
                                 label="E-posta"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                icon={<Mail size={20} />}
+                                icon={<Mail size={18} />}
                             />
                             {emailUpdateMsg && <p className="text-xs text-amber-600 mt-2 font-medium bg-amber-50 p-2 rounded-lg border border-amber-100">{emailUpdateMsg}</p>}
                         </div>
 
-                        <div className="flex justify-end">
-                            <Button type="submit" isLoading={savingPersonal} icon={!savingPersonal && <Save size={16} />}>
-                                Bilgileri Kaydet
+                        <div className="flex justify-end border-t border-slate-50 pt-5">
+                            <Button type="submit" variant="soft" isLoading={savingPersonal} icon={!savingPersonal && <Save size={18} />}>
+                                Değişiklikleri Kaydet
                             </Button>
                         </div>
                     </form>
                 </section>
 
-                {/* 2. GÖRÜNÜM & GİZLİLİK */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
-                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><EyeIcon size={24} /></div>
-                        <h2 className="text-xl font-bold text-slate-800">Görünüm & Gizlilik</h2>
+                {/* 2. GÖRÜNÜM & GİZLİLİK (Düzeltildi ve İyileştirildi) */}
+                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl"><EyeIcon size={24} /></div>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">Görünüm Tercihleri</h2>
+                            <p className="text-sm text-slate-500">Liderlik tablosunda nasıl görüneceğini seç.</p>
+                        </div>
                     </div>
 
-                    <div className="flex justify-end">
-                        <Button onClick={saveAppearance} isLoading={savingAppearance} variant="primary" icon={!savingAppearance && <CheckCircle size={18} />}>
-                            Tercihi Kaydet
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                        {/* Seçenek 1: Kullanıcı Adı */}
+                        <div
+                            onClick={() => setFormData({ ...formData, displayPreference: 'username' })}
+                            className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex flex-col gap-2
+                            ${formData.displayPreference === 'username'
+                                    ? 'border-purple-500 bg-purple-50/30 ring-4 ring-purple-500/10'
+                                    : 'border-slate-100 hover:border-purple-200 hover:bg-slate-50'}`}
+                        >
+                            <div className="flex justify-between items-start">
+                                <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-700 font-bold">
+                                    @{formData.username || 'kullaniciadi'}
+                                </div>
+                                {formData.displayPreference === 'username' && <CheckCircle size={20} className="text-purple-600" />}
+                            </div>
+                            <div>
+                                <div className="font-bold text-slate-800">Kullanıcı Adı</div>
+                                <div className="text-xs text-slate-500">Gerçek isminiz gizli kalır.</div>
+                            </div>
+                        </div>
+
+                        {/* Seçenek 2: Ad Soyad */}
+                        <div
+                            onClick={() => setFormData({ ...formData, displayPreference: 'fullname' })}
+                            className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex flex-col gap-2
+                            ${formData.displayPreference === 'fullname'
+                                    ? 'border-purple-500 bg-purple-50/30 ring-4 ring-purple-500/10'
+                                    : 'border-slate-100 hover:border-purple-200 hover:bg-slate-50'}`}
+                        >
+                            <div className="flex justify-between items-start">
+                                <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-700 font-bold">
+                                    {formData.firstName} {formData.lastName}
+                                </div>
+                                {formData.displayPreference === 'fullname' && <CheckCircle size={20} className="text-purple-600" />}
+                            </div>
+                            <div>
+                                <div className="font-bold text-slate-800">Ad Soyad</div>
+                                <div className="text-xs text-slate-500">Arkadaşlarınız sizi daha kolay bulur.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end border-t border-slate-50 pt-5">
+                        <Button onClick={saveAppearance} isLoading={savingAppearance} variant="soft">
+                            Tercihi Güncelle
                         </Button>
                     </div>
                 </section>
 
-                {/* 3. BİLDİRİM AYARLARI (YENİ - PROFESYONEL GÖRÜNÜM) */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
-                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><Bell size={24} /></div>
-                        <h2 className="text-xl font-bold text-slate-800">Bildirim Ayarları</h2>
+                {/* 3. BİLDİRİM AYARLARI */}
+                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl"><Bell size={24} /></div>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">Bildirimler</h2>
+                            <p className="text-sm text-slate-500">E-posta tercihlerini yönet.</p>
+                        </div>
                     </div>
 
-                    <div className="space-y-4 mb-6">
-                        <label className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm"><Mail size={18} className="text-slate-400" /></div>
+                    <div className="space-y-3 mb-8">
+                        <label className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer group">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm text-slate-400 group-hover:text-indigo-500 transition"><Mail size={18} /></div>
                                 <div>
-                                    <div className="font-bold text-slate-800">Haftalık Özeti E-posta ile Al</div>
-                                    <div className="text-xs text-slate-500">Öğrendiğin kelimelerin raporu.</div>
+                                    <div className="font-bold text-slate-800">Haftalık Özet</div>
+                                    <div className="text-xs text-slate-500">İlerleme raporun her Pazartesi cebinde.</div>
                                 </div>
                             </div>
-                            <input type="checkbox" checked={formData.emailNotifications} onChange={() => setFormData({ ...formData, emailNotifications: !formData.emailNotifications })} className="w-6 h-6 text-indigo-600 rounded focus:ring-indigo-500" />
+                            <div className={`w-12 h-6 rounded-full transition-colors relative ${formData.emailNotifications ? 'bg-indigo-600' : 'bg-slate-200'}`}>
+                                <input type="checkbox" checked={formData.emailNotifications} onChange={() => setFormData({ ...formData, emailNotifications: !formData.emailNotifications })} className="opacity-0 w-full h-full absolute cursor-pointer z-10" />
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${formData.emailNotifications ? 'left-7' : 'left-1'}`}></div>
+                            </div>
                         </label>
 
-                        <label className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm"><Globe size={18} className="text-slate-400" /></div>
+                        <label className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer group">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm text-slate-400 group-hover:text-indigo-500 transition"><Globe size={18} /></div>
                                 <div>
-                                    <div className="font-bold text-slate-800">Ürün ve Özellik Haberleri</div>
-                                    <div className="text-xs text-slate-500">Vocasun'daki yeniliklerden haberdar ol.</div>
+                                    <div className="font-bold text-slate-800">Ürün Haberleri</div>
+                                    <div className="text-xs text-slate-500">Yeni özelliklerden ilk senin haberin olsun.</div>
                                 </div>
                             </div>
-                            <input type="checkbox" checked={formData.marketingEmails} onChange={() => setFormData({ ...formData, marketingEmails: !formData.marketingEmails })} className="w-6 h-6 text-indigo-600 rounded focus:ring-indigo-500" />
+                            <div className={`w-12 h-6 rounded-full transition-colors relative ${formData.marketingEmails ? 'bg-indigo-600' : 'bg-slate-200'}`}>
+                                <input type="checkbox" checked={formData.marketingEmails} onChange={() => setFormData({ ...formData, marketingEmails: !formData.marketingEmails })} className="opacity-0 w-full h-full absolute cursor-pointer z-10" />
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${formData.marketingEmails ? 'left-7' : 'left-1'}`}></div>
+                            </div>
                         </label>
                     </div>
 
-                    <div className="flex justify-end">
-                        <Button onClick={saveNotifications} isLoading={savingNotif} variant="primary">
-                            Ayarları Güncelle
+                    <div className="flex justify-end border-t border-slate-50 pt-5">
+                        <Button onClick={saveNotifications} isLoading={savingNotif} variant="soft">
+                            Ayarları Kaydet
                         </Button>
                     </div>
                 </section>
 
-                {/* 4. ŞİFRE DEĞİŞTİRME */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-50">
-                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><Lock size={24} /></div>
-                        <h2 className="text-xl font-bold text-slate-800">Şifre Değiştir</h2>
+                {/* 4. GÜVENLİK & ŞİFRE */}
+                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><Shield size={24} /></div>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">Güvenlik</h2>
+                            <p className="text-sm text-slate-500">Şifreni güncelle.</p>
+                        </div>
                     </div>
 
                     <form onSubmit={savePassword}>
-                        <div className="relative">
+                        <div className="relative mb-5">
                             <Input
-                                label="MEVCUT ŞİFRE"
+                                label="Mevcut Şifre"
                                 value={passwords.current}
                                 onChange={(e: any) => setPasswords(p => ({ ...p, current: e.target.value }))}
                                 type={showPass.current ? "text" : "password"}
@@ -312,10 +387,10 @@ export default function Settings() {
                                 {showPass.current ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
                             <div className="relative">
                                 <Input
-                                    label="YENİ ŞİFRE"
+                                    label="Yeni Şifre"
                                     value={passwords.new}
                                     onChange={(e: any) => setPasswords(p => ({ ...p, new: e.target.value }))}
                                     type={showPass.new ? "text" : "password"}
@@ -327,7 +402,7 @@ export default function Settings() {
                             </div>
                             <div className="relative">
                                 <Input
-                                    label="YENİ ŞİFRE (TEKRAR)"
+                                    label="Yeni Şifre (Tekrar)"
                                     value={passwords.confirm}
                                     onChange={(e: any) => setPasswords(p => ({ ...p, confirm: e.target.value }))}
                                     type={showPass.confirm ? "text" : "password"}
@@ -338,8 +413,8 @@ export default function Settings() {
                                 </button>
                             </div>
                         </div>
-                        <div className="flex justify-end">
-                            <Button type="submit" isLoading={savingPassword} variant="primary" icon={!savingPassword && <Lock size={18} />}>
+                        <div className="flex justify-end border-t border-slate-50 pt-5">
+                            <Button type="submit" isLoading={savingPassword} variant="soft" icon={!savingPassword && <Lock size={18} />}>
                                 Şifreyi Yenile
                             </Button>
                         </div>
@@ -347,16 +422,16 @@ export default function Settings() {
                 </section>
 
                 {/* 5. TEHLİKELİ BÖLGE */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-red-100 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-2 h-full bg-red-500"></div>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-red-100 text-red-600 rounded-xl"><AlertTriangle size={24} /></div>
-                        <h2 className="text-xl font-bold text-slate-800">Tehlikeli Bölge</h2>
+                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-red-100 relative overflow-hidden transition-all hover:shadow-md hover:border-red-200">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                    <div className="flex items-center gap-3 mb-4 pl-2">
+                        <div className="p-2 bg-red-50 text-red-600 rounded-xl"><AlertTriangle size={24} /></div>
+                        <h2 className="text-lg font-bold text-slate-800">Tehlikeli Bölge</h2>
                     </div>
-                    <p className="text-slate-500 text-sm mb-6">
+                    <p className="text-slate-500 text-sm mb-6 pl-2">
                         Hesabınızı silme talebi oluşturduğunuzda, verileriniz <b>14 gün boyunca</b> saklanır. Bu süre içinde tekrar giriş yaparsanız silme işlemi iptal edilir.
                     </p>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end border-t border-red-50 pt-5">
                         <Button
                             type="button"
                             onClick={() => setShowDeleteModal(true)}
@@ -390,7 +465,7 @@ export default function Settings() {
             {/* 2. Başarı Modalı */}
             <Modal
                 isOpen={showDeleteSuccessModal}
-                onClose={() => { }} // Kapatılamaz, yönlendirecek
+                onClose={() => { }}
                 title="İşlem Başlatıldı"
                 icon={<CheckCircle size={32} />}
                 type="danger"

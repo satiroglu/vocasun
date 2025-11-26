@@ -4,20 +4,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { ArrowLeft, Volume2, Check, X, BookOpen, PenTool, LayoutGrid, Brain, Clock, Sparkles, SkipForward } from 'lucide-react';
+import { VocabularyItem } from '@/types';
 
 type Mode = 'write' | 'choice' | 'flip';
-
-// --- TypeScript Tip Tanımlaması ---
-interface VocabularyItem {
-    id: number;
-    word: string;
-    meaning: string;
-    type: string;
-    level: string;
-    example_en: string;
-    example_tr: string;
-    audio_url?: string;
-}
 
 export default function Learn() {
     const [loading, setLoading] = useState(true);
@@ -185,7 +174,7 @@ export default function Learn() {
     if (!correctWord) return null;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 font-sans">
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center px-4 pt-6 pb-4 font-sans">
 
             {/* Navbar */}
             <div className="w-full max-w-lg flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">

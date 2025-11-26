@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sun, LogOut, BookOpen, Trophy, TrendingUp, Activity, Settings, Clock, ChevronRight, Volume2, HelpCircle } from 'lucide-react';
+import { Trophy, TrendingUp, Activity, Clock, ChevronRight, Volume2, BookOpen, Sun } from 'lucide-react';
+import { Profile } from '@/types';
+import StatCard from '@/components/StatCard';
+import Card from '@/components/Card';
 
 export default function Dashboard() {
     const router = useRouter();
-    const [profile, setProfile] = useState<any>(null);
+    const [profile, setProfile] = useState<Profile | null>(null);
     const [recentWords, setRecentWords] = useState<any[]>([]);
     const [stats, setStats] = useState({ learnedCount: 0 });
     const [loading, setLoading] = useState(true);
@@ -18,7 +21,7 @@ export default function Dashboard() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { router.push('/login'); return; }
 
-            // 1. Profil Çek
+            // 1. Profil Çek (display_name_preference eklendi)
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
@@ -35,7 +38,7 @@ export default function Dashboard() {
 
             setStats({ learnedCount: count || 0 });
 
-            // 3. Son Çalışılanlar (Sorguya örnek cümleler eklendi)
+            // 3. Son Çalışılanlar
             const { data: progressData } = await supabase
                 .from('user_progress')
                 .select(`
@@ -53,11 +56,6 @@ export default function Dashboard() {
 
         fetchData();
     }, [router]);
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/login');
-    };
 
     const timeAgo = (dateString: string) => {
         const now = new Date();
@@ -79,50 +77,37 @@ export default function Dashboard() {
         }
     };
 
+    // İsim Gösterme Mantığı (Helper)
+    const getDisplayName = () => {
+        if (!profile) return 'Öğrenci';
+        if (profile.display_name_preference === 'fullname' && profile.first_name) {
+            return profile.first_name; // Sadece adını söylemek daha samimi (Hoş geldin Ahmet!)
+        }
+        return profile.username || profile.first_name || 'Öğrenci';
+    };
+
     if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-                <div className="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
-                    <Link href="/dashboard" className="flex items-center gap-2 text-indigo-600 hover:opacity-80 transition">
-                        <Sun className="w-8 h-8" />
-                        <span className="font-bold text-xl">Vocasun</span>
-                    </Link>
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans pt-6 pb-10">
 
-                    <div className="flex items-center gap-3">
-                        <div className="text-right hidden sm:block">
-                            <div className="text-sm font-bold text-slate-800">{profile?.username}</div>
-                            <div className="text-xs text-slate-500 font-medium">{profile?.total_xp} XP</div>
-                        </div>
-                        <Link
-                            href="/info"
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                            title="Nasıl Çalışır?"
-                        >
-                            <HelpCircle size={20} />
-                        </Link>
-                        <Link href="/settings" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"><Settings size={20} /></Link>
-                        <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><LogOut size={20} /></button>
-                    </div>
-                </div>
-            </header>
+            {/* NOT: Navbar zaten layout'ta olduğu için buradaki Header'ı sildik. */}
 
-            <main className="flex-grow max-w-5xl mx-auto w-full p-4 sm:p-6 space-y-6">
+            <main className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 space-y-6">
                 {/* Hero Section */}
                 <section className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-3xl p-6 sm:p-10 text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
                     <div className="relative z-10">
-                        <h1 className="text-2xl sm:text-4xl font-bold mb-2">Hoş geldin, {profile?.first_name}! 👋</h1>
+                        <h1 className="text-2xl sm:text-4xl font-bold mb-2">Hoş geldin, {getDisplayName()}! 👋</h1>
                         <p className="text-indigo-100 mb-8 max-w-lg text-sm sm:text-base">Kelime hazinene yatırım yapmaya devam et.</p>
                         <div className="flex flex-wrap gap-3">
                             <Link href="/learn" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3.5 rounded-xl font-bold hover:bg-indigo-50 transition shadow-lg active:scale-95">
-                                <BookOpen size={20} /> Çalış
+                                <BookOpen size={20} /> Öğrenmeye Başla
                             </Link>
                             <Link
                                 href="/leaderboard"
                                 className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-white/20 transition shadow-lg active:scale-95"
                             >
-                                <Trophy size={20} className="text-yellow-300" /> {/* İkonu sarı yaptık */}
+                                <Trophy size={20} className="text-yellow-300" />
                                 Liderlik Tablosu
                             </Link>
                         </div>
@@ -137,19 +122,18 @@ export default function Dashboard() {
                     <StatCard icon={<Activity className="text-blue-600" />} label="Öğrenilen" value={`${stats.learnedCount} Kelime`} bg="bg-blue-50" />
                 </div>
 
-                {/* Son Aktiviteler (GÜNCELLENDİ) */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-lg">
-                            <Clock size={20} className="text-indigo-500" /> Son Aktiviteler
-                        </h3>
-                        {recentWords.length > 0 && (
+                {/* Son Aktiviteler */}
+                <Card
+                    title="Son Aktiviteler"
+                    icon={<Clock size={20} />}
+                    headerAction={
+                        recentWords.length > 0 && (
                             <Link href="/history" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                                 Tümünü Gör <ChevronRight size={16} />
                             </Link>
-                        )}
-                    </div>
-
+                        )
+                    }
+                >
                     {recentWords.length > 0 ? (
                         <div className="space-y-4">
                             {recentWords.map((item: any, i) => (
@@ -175,7 +159,6 @@ export default function Dashboard() {
                                         </div>
                                     </div>
 
-                                    {/* Örnek Cümleler */}
                                     <div className="text-xs bg-white p-3 rounded-lg border border-slate-200 text-slate-600 ml-5">
                                         <p className="mb-1">🇬🇧 {item.vocabulary?.example_en}</p>
                                         <p className="text-slate-500">🇹🇷 {item.vocabulary?.example_tr}</p>
@@ -186,20 +169,8 @@ export default function Dashboard() {
                     ) : (
                         <div className="text-center py-8 text-slate-400">Henüz kelime çalışılmadı.</div>
                     )}
-                </div>
+                </Card>
             </main>
-        </div>
-    );
-}
-
-function StatCard({ icon, label, value, bg }: any) {
-    return (
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition">
-            <div className={`p-3 rounded-xl ${bg} w-12 h-12 flex items-center justify-center`}>{icon}</div>
-            <div>
-                <div className="text-slate-500 text-xs font-semibold uppercase tracking-wide">{label}</div>
-                <div className="text-xl font-bold text-slate-900">{value}</div>
-            </div>
         </div>
     );
 }

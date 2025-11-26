@@ -4,7 +4,10 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, ArrowLeft, Sun } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Sun, UserX, CheckCircle, Info } from 'lucide-react';
+import Modal from '@/components/Modal';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 
 export default function Login() {
     const router = useRouter();
@@ -13,12 +16,19 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    // Modal State'leri
+    const [restoreUser, setRestoreUser] = useState<any>(null); // Kurtarılacak kullanıcı ID'si
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setErrorMsg(null);
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
             if (error.message.includes("Email not confirmed")) {
@@ -28,17 +38,61 @@ export default function Login() {
             } else {
                 setErrorMsg(error.message);
             }
-        } else {
+            setLoading(false);
+            return;
+        }
+
+        if (user) {
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('marked_for_deletion_at')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile?.marked_for_deletion_at) {
+                    // Silinme sürecinde! Modalı aç.
+                    setRestoreUser(user); // Kullanıcıyı hafızaya al
+                    setShowRestoreModal(true);
+                    // Loading false yapmıyoruz ki arkada form donuk kalsın
+                } else {
+                    // Temiz giriş
+                    router.push('/dashboard');
+                    router.refresh();
+                }
+            } catch (err) {
+                router.push('/dashboard'); // Hata olsa da içeri al
+            }
+        }
+    };
+
+    // Hesabı Kurtar
+    const handleRestore = async () => {
+        if (!restoreUser) return;
+
+        await supabase.from('profiles').update({ marked_for_deletion_at: null }).eq('id', restoreUser.id);
+
+        setShowRestoreModal(false);
+        setShowSuccessModal(true); // Başarı modalını aç
+
+        setTimeout(() => {
             router.push('/dashboard');
             router.refresh();
-        }
+        }, 2000); // 2 sn sonra yönlendir
+    };
+
+    // İptal Et ve Çıkış Yap
+    const handleCancelRestore = async () => {
+        await supabase.auth.signOut();
+        setShowRestoreModal(false);
         setLoading(false);
+        setShowCancelModal(true);
     };
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
 
-            {/* Logo ve Geri Dönüş */}
+            {/* Logo */}
             <Link href="/" className="mb-8 flex items-center gap-2 text-indigo-600 font-bold text-2xl hover:opacity-80 transition">
                 <Sun className="w-8 h-8" />
                 <span>Vocasun</span>
@@ -59,60 +113,90 @@ export default function Login() {
                             <div className="text-sm text-red-700">{errorMsg}</div>
                         </div>
                     )}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">E-posta</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-                            placeholder="ornek@email.com"
-                        />
-                    </div>
+
+                    <Input
+                        label="E-posta"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="ornek@email.com"
+                    />
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Şifre</label>
                         <div className="relative">
-                            <input
+                            <Input
+                                label="Şifre"
                                 type={showPassword ? "text" : "password"}
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition pr-10"
                                 placeholder="••••••••"
+                                className="pr-10"
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                            >
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[38px] text-slate-400 hover:text-slate-600">
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
-                        <div className="flex justify-end mt-1">
-                            <Link href="/forgot-password" className="text-xs text-indigo-600 hover:underline">
-                                Şifremi unuttum?
-                            </Link>
+                        <div className="flex justify-end -mt-3">
+                            <Link href="/forgot-password" className="text-xs text-indigo-600 hover:underline">Şifremi unuttum?</Link>
                         </div>
                     </div>
 
-                    <button
+                    <Button
                         type="submit"
-                        disabled={loading}
-                        className="w-full bg-indigo-600 text-white p-3.5 rounded-xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
+                        isLoading={loading}
+                        className="w-full"
                     >
-                        {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-                    </button>
+                        Giriş Yap
+                    </Button>
                 </form>
 
                 <p className="text-center mt-8 text-slate-600 text-sm">
-                    Hesabın yok mu?{' '}
-                    <Link href="/register" className="text-indigo-600 font-bold hover:underline">
-                        Kayıt Ol
-                    </Link>
+                    Hesabın yok mu? <Link href="/register" className="text-indigo-600 font-bold hover:underline">Kayıt Ol</Link>
                 </p>
             </div>
+
+            {/* --- MODALS --- */}
+
+            {/* 1. Kurtarma Onayı Modalı */}
+            <Modal
+                isOpen={showRestoreModal}
+                title="Hesabınız Silinme Aşamasında"
+                icon={<UserX size={32} />}
+                type="warning"
+            >
+                <p className="mb-6">
+                    Bu hesap silinmek üzere işaretlenmiş. 14 günlük süre henüz dolmadı. Hesabınızı kurtarmak ve silme işlemini iptal etmek ister misiniz?
+                </p>
+                <div className="flex gap-3">
+                    <Button onClick={handleCancelRestore} variant="secondary" className="flex-1">Hayır, Çık</Button>
+                    <Button onClick={handleRestore} variant="primary" className="flex-1">Evet, Kurtar</Button>
+                </div>
+            </Modal>
+
+            {/* 2. Başarı Modalı */}
+            <Modal
+                isOpen={showSuccessModal}
+                title="Hoş Geldiniz!"
+                icon={<CheckCircle size={32} />}
+                type="success"
+            >
+                <p className="mb-6">Hesabınız başarıyla kurtarıldı. Kaldığınız yerden devam edebilirsiniz. Yönlendiriliyorsunuz...</p>
+            </Modal>
+
+            {/* 3. İptal Modalı */}
+            <Modal
+                isOpen={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                title="Giriş İptal Edildi"
+                icon={<Info size={32} />}
+                type="normal"
+            >
+                <p className="mb-6">Giriş işlemi iptal edildi. Ana sayfaya dönebilir veya tekrar deneyebilirsiniz.</p>
+                <Button onClick={() => setShowCancelModal(false)} variant="secondary" className="w-full">Tamam</Button>
+            </Modal>
+
         </div>
     );
 }

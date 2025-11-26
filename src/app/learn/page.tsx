@@ -15,7 +15,7 @@ interface VocabularyItem {
     type: string;
     level: string;
     example_en: string;
-    example_tr: string; // Bunu eklemeyi unutmuştuk, ekledik.
+    example_tr: string;
     audio_url?: string;
 }
 
@@ -92,10 +92,8 @@ export default function Learn() {
         if (!wordToPlay) return;
 
         if (correctWord?.audio_url && !text) {
-            // Eğer kelime için özel ses dosyası varsa
             new Audio(correctWord.audio_url).play().catch(() => { });
         } else {
-            // Yoksa veya özel bir metin okunacaksa
             const u = new SpeechSynthesisUtterance(wordToPlay);
             u.lang = 'en-US';
             window.speechSynthesis.speak(u);
@@ -154,7 +152,6 @@ export default function Learn() {
 
     const handleWrong = async () => {
         setStatus('error');
-        // Yanlış bilince sesli okusun ki doğrusunu duysun
         playAudio();
         await saveProgress(false);
     };
@@ -189,6 +186,8 @@ export default function Learn() {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 font-sans">
+
+            {/* Navbar */}
             <div className="w-full max-w-lg flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
                 <div className="flex items-center w-full sm:w-auto">
                     <Link href="/dashboard" className="p-2 text-slate-500 hover:bg-slate-200 rounded-full"><ArrowLeft size={24} /></Link>
@@ -218,7 +217,6 @@ export default function Learn() {
 
                 <div className="flex-grow flex flex-col items-center justify-center p-6 text-center w-full">
 
-                    {/* MOD 1: YAZMA */}
                     {mode === 'write' && (
                         <>
                             <h2 className="text-3xl font-extrabold text-slate-800 mb-2">{correctWord.meaning}</h2>
@@ -233,13 +231,18 @@ export default function Learn() {
                                     autoComplete='off'
                                 />
 
+                                {/* 
+                                    GÜNCELLENDİ: Butonlar Mobilde Alt Alta, Masaüstünde Yan Yana 
+                                    flex-col-reverse: Mobilde 'Bilmiyorum' altta, 'Kontrol Et' üstte (veya tam tersi tercih edilebilir)
+                                    Burada flex-col-reverse sm:flex-row kullandım ki HTML sırasına göre mobilde "Bilmiyorum" altta kalsın.
+                                */}
                                 {status === 'idle' && (
-                                    <div className="flex gap-2 mt-4">
+                                    <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6 w-full">
                                         {/* Pas Geç Butonu */}
                                         <button
                                             type="button"
                                             onClick={handleWrong}
-                                            className="flex-1 bg-white border border-slate-200 text-slate-500 py-3 rounded-xl font-bold hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-center gap-2"
+                                            className="w-full sm:flex-1 bg-white border border-slate-200 text-slate-500 py-4 rounded-xl font-bold hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-center gap-2"
                                         >
                                             <SkipForward size={18} /> Bilmiyorum
                                         </button>
@@ -247,7 +250,7 @@ export default function Learn() {
                                         {/* Kontrol Et Butonu */}
                                         <button
                                             type="submit"
-                                            className="flex-[2] bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg"
+                                            className="w-full sm:flex-[2] bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg active:scale-[0.98]"
                                         >
                                             Kontrol Et
                                         </button>
@@ -257,11 +260,10 @@ export default function Learn() {
                         </>
                     )}
 
-                    {/* MOD 2: SEÇMELİ */}
                     {mode === 'choice' && (
                         <>
                             <h2 className="text-3xl font-extrabold text-slate-800 mb-8">{correctWord.meaning}</h2>
-                            <div className="grid grid-cols-2 gap-3 w-full">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                                 {words.map((item) => (
                                     <button key={item.id} onClick={() => checkChoice(item.word)} disabled={status !== 'idle'}
                                         className={`p-4 rounded-xl font-bold border-2 transition text-lg 
@@ -276,7 +278,6 @@ export default function Learn() {
                         </>
                     )}
 
-                    {/* MOD 3: FLIP CARD (DÜZELTİLDİ: Ön Yüz Türkçe, Arka Yüz İngilizce) */}
                     {mode === 'flip' && (
                         <div className="w-full h-64 perspective cursor-pointer" onClick={() => setFlipped(!flipped)}>
                             <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
@@ -296,9 +297,19 @@ export default function Learn() {
                                     </div>
 
                                     {!status && (
-                                        <div className="flex gap-2 w-full px-4">
-                                            <button onClick={(e) => { e.stopPropagation(); handleCorrect(); }} className="flex-1 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-bold hover:bg-green-200">Biliyorum</button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleWrong(); }} className="flex-1 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-bold hover:bg-red-200">Bilmiyorum</button>
+                                        <div className="flex flex-col sm:flex-row gap-2 w-full px-4">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleCorrect(); }}
+                                                className="flex-1 py-3 bg-green-100 text-green-700 rounded-lg text-sm font-bold hover:bg-green-200 w-full"
+                                            >
+                                                Biliyorum
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleWrong(); }}
+                                                className="flex-1 py-3 bg-red-100 text-red-700 rounded-lg text-sm font-bold hover:bg-red-200 w-full"
+                                            >
+                                                Bilmiyorum
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -306,7 +317,7 @@ export default function Learn() {
                         </div>
                     )}
 
-                    {/* --- FEEDBACK ALANI (Örnek Cümleler Eklendi) --- */}
+                    {/* --- FEEDBACK ALANI --- */}
                     {status === 'success' && (
                         <div className="mt-6 w-full animate-fade-in-up">
                             <div className="bg-green-100 text-green-800 p-4 rounded-xl mb-3 text-left">
@@ -315,13 +326,12 @@ export default function Learn() {
                                     <span className="font-bold text-lg">Doğru!</span>
                                     <span className="text-xs ml-auto opacity-75 bg-white/50 px-2 py-1 rounded">Sonraki: {calculateSRS(true).interval} gün</span>
                                 </div>
-                                {/* Örnek Cümleler */}
                                 <div className="bg-white/60 p-3 rounded-lg text-sm">
                                     <p className="font-medium text-slate-800 mb-1">🇬🇧 {correctWord.example_en}</p>
                                     <p className="text-slate-600">🇹🇷 {correctWord.example_tr}</p>
                                 </div>
                             </div>
-                            <button onClick={fetchQuestion} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">Devam Et</button>
+                            <button onClick={fetchQuestion} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">Devam Et</button>
                         </div>
                     )}
 
@@ -335,13 +345,12 @@ export default function Learn() {
                                 <div className="text-lg mb-3">
                                     Doğrusu: <b className="text-slate-900">{correctWord.word}</b>
                                 </div>
-                                {/* Örnek Cümleler */}
                                 <div className="bg-white/60 p-3 rounded-lg text-sm">
                                     <p className="font-medium text-slate-800 mb-1">🇬🇧 {correctWord.example_en}</p>
                                     <p className="text-slate-600">🇹🇷 {correctWord.example_tr}</p>
                                 </div>
                             </div>
-                            <button onClick={fetchQuestion} className="w-full bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition">Anladım</button>
+                            <button onClick={fetchQuestion} className="w-full bg-slate-200 text-slate-700 py-4 rounded-xl font-bold hover:bg-slate-300 transition">Anladım</button>
                         </div>
                     )}
 

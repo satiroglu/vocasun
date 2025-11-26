@@ -31,6 +31,8 @@ export default function Settings() {
 
     // Veriler
     const [formData, setFormData] = useState({
+        dailyGoal: 20, // Varsayılan 20
+        bio: '',       // Yeni bio alanı
         id: '', firstName: '', lastName: '', username: '', email: '', displayPreference: 'username',
         emailNotifications: true, marketingEmails: false
     });
@@ -50,6 +52,8 @@ export default function Settings() {
                 lastName: data?.last_name || '',
                 username: data?.username || '',
                 email: user.email || '',
+                dailyGoal: data?.daily_goal || 20,
+                bio: data?.bio || '',
                 displayPreference: data?.display_name_preference || 'username',
                 emailNotifications: true,
                 marketingEmails: false
@@ -71,7 +75,12 @@ export default function Settings() {
         try {
             const { error } = await supabase
                 .from('profiles')
-                .update({ first_name: formData.firstName, last_name: formData.lastName })
+                .update({
+                    first_name: formData.firstName,
+                    last_name: formData.lastName,
+                    daily_goal: formData.dailyGoal, // Eklendi
+                    bio: formData.bio // Eklendi
+                })
                 .eq('id', formData.id);
 
             if (error) throw error;
@@ -248,6 +257,32 @@ export default function Settings() {
                                 icon={<Mail size={18} />}
                             />
                             {emailUpdateMsg && <p className="text-xs text-amber-600 mt-2 font-medium bg-amber-50 p-2 rounded-lg border border-amber-100">{emailUpdateMsg}</p>}
+                        </div>
+
+                        <div className="mb-5">
+                            <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Günlük Kelime Hedefi</label>
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="range"
+                                    min="5"
+                                    max="50"
+                                    step="5"
+                                    value={formData.dailyGoal}
+                                    onChange={(e) => setFormData({ ...formData, dailyGoal: Number(e.target.value) })}
+                                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                />
+                                <span className="font-bold text-indigo-600 w-12 text-right">{formData.dailyGoal}</span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1 ml-1">Günde kaç kelime çalışmak istiyorsun?</p>
+                        </div>
+
+                        <div className="mb-5">
+                            <Input
+                                label="Hakkımda (Bio)"
+                                value={formData.bio}
+                                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                                placeholder="Kısaca kendinden bahset..."
+                            />
                         </div>
 
                         <div className="flex justify-end border-t border-slate-50 pt-5">

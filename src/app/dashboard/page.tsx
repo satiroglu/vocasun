@@ -1,61 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Trophy, TrendingUp, Activity, Clock, ChevronRight, Volume2, BookOpen, Sun } from 'lucide-react';
-import { Profile } from '@/types';
+import { Trophy, TrendingUp, Activity, Clock, ChevronRight, Volume2, BookOpen, Sun, Target } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
+import { useUser } from '@/hooks/useUser';
+import { useDashboard } from '@/hooks/useDashboard';
+import { useEffect } from 'react';
 
 export default function Dashboard() {
     const router = useRouter();
-    const [profile, setProfile] = useState<Profile | null>(null);
-    const [recentWords, setRecentWords] = useState<any[]>([]);
-    const [stats, setStats] = useState({ learnedCount: 0 });
-    const [loading, setLoading] = useState(true);
+    const { user, loading: userLoading } = useUser();
+    const { data, isLoading: dashboardLoading } = useDashboard(user?.id);
 
+    // Kullanıcı yoksa login'e yönlendir
     useEffect(() => {
-        const fetchData = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { router.push('/login'); return; }
+        if (!userLoading && !user) {
+            router.push('/login');
+        }
+    }, [user, userLoading, router]);
 
-            // 1. Profil Çek (display_name_preference eklendi)
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-            setProfile(profileData);
-
-            // 2. İstatistik Çek
-            const { count } = await supabase
-                .from('user_progress')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .eq('is_mastered', true);
-
-            setStats({ learnedCount: count || 0 });
-
-            // 3. Son Çalışılanlar
-            const { data: progressData } = await supabase
-                .from('user_progress')
-                .select(`
-                  updated_at,
-                  is_mastered,
-                  vocabulary ( word, meaning, audio_url, example_en, example_tr )
-                `)
-                .eq('user_id', user.id)
-                .order('updated_at', { ascending: false })
-                .limit(5);
-
-            if (progressData) setRecentWords(progressData);
-            setLoading(false);
-        };
-
-        fetchData();
-    }, [router]);
+    const loading = userLoading || dashboardLoading;
+    const profile = data?.profile;
+    const recentWords = data?.recentWords || [];
+    const stats = { learnedCount: data?.learnedCount || 0 };
+    const dailyProgress = data?.dailyProgress || 0;
 
     const timeAgo = (dateString: string) => {
         const now = new Date();
@@ -67,8 +37,9 @@ export default function Dashboard() {
         return `${Math.floor(diffInSeconds / 86400)} gün önce`;
     };
 
-    const playAudio = (e: React.MouseEvent, url: string, text: string) => {
+    const playAudio = (e: React.MouseEvent, url: string | undefined, text: string) => {
         e.preventDefault();
+        e.stopPropagation(); // Tıklamanın üst elemanlara geçmesini engelle
         if (url) new Audio(url).play().catch(() => { });
         else {
             const u = new SpeechSynthesisUtterance(text);
@@ -77,28 +48,25 @@ export default function Dashboard() {
         }
     };
 
-    // İsim Gösterme Mantığı (Helper)
     const getDisplayName = () => {
         if (!profile) return 'Öğrenci';
         if (profile.display_name_preference === 'fullname' && profile.first_name) {
-            return profile.first_name; // Sadece adını söylemek daha samimi (Hoş geldin Ahmet!)
+            return profile.first_name;
         }
         return profile.username || profile.first_name || 'Öğrenci';
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div></div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-200 border-t-indigo-600"></div></div>;
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans pt-6 pb-10">
-
-            {/* NOT: Navbar zaten layout'ta olduğu için buradaki Header'ı sildik. */}
-
             <main className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 space-y-6">
+
                 {/* Hero Section */}
                 <section className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-3xl p-6 sm:p-10 text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
                     <div className="relative z-10">
                         <h1 className="text-2xl sm:text-4xl font-bold mb-2">Hoş geldin, {getDisplayName()}! 👋</h1>
-                        <p className="text-indigo-100 mb-8 max-w-lg text-sm sm:text-base">Kelime hazinene yatırım yapmaya devam et.</p>
+                        <p className="text-indigo-100 mb-8 max-w-lg text-sm sm:text-base">Bugünkü hedefine ulaşmak için harika bir zaman.</p>
                         <div className="flex flex-wrap gap-3">
                             <Link href="/learn" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3.5 rounded-xl font-bold hover:bg-indigo-50 transition shadow-lg active:scale-95">
                                 <BookOpen size={20} /> Öğrenmeye Başla
@@ -114,6 +82,38 @@ export default function Dashboard() {
                     </div>
                     <Sun className="absolute -right-10 -top-10 text-white opacity-10 w-64 h-64 rotate-12" />
                 </section>
+
+                {/* Günlük Hedef Kartı */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h3 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
+                            <Target className="text-indigo-600" size={20} /> Günlük Hedef
+                        </h3>
+                        <p className="text-slate-500 text-sm">
+                            Bugün <span className="font-bold text-slate-900">{dailyProgress}</span> / {profile?.daily_goal || 20} kelime çalıştın.
+                        </p>
+                    </div>
+
+                    {/* Dairesel Progress Bar */}
+                    <div className="relative w-16 h-16">
+                        <svg className="w-full h-full transform -rotate-90">
+                            <circle cx="32" cy="32" r="28" stroke="#f1f5f9" strokeWidth="6" fill="none" />
+                            <circle
+                                cx="32" cy="32" r="28"
+                                stroke="#4f46e5"
+                                strokeWidth="6"
+                                fill="none"
+                                strokeDasharray={175}
+                                strokeDashoffset={175 - (175 * Math.min(dailyProgress / (profile?.daily_goal || 20), 1))}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-out"
+                            />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center font-bold text-xs text-indigo-600">
+                            {Math.round((dailyProgress / (profile?.daily_goal || 20)) * 100)}%
+                        </div>
+                    </div>
+                </div>
 
                 {/* İstatistikler */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -136,7 +136,7 @@ export default function Dashboard() {
                 >
                     {recentWords.length > 0 ? (
                         <div className="space-y-4">
-                            {recentWords.map((item: any, i) => (
+                            {recentWords.map((item, i) => (
                                 <div key={i} className="flex flex-col gap-3 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition border border-slate-100">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-3">
@@ -144,14 +144,14 @@ export default function Dashboard() {
                                             <div>
                                                 <div className="font-bold text-slate-800 text-lg flex items-center gap-2">
                                                     {item.vocabulary?.word}
-                                                    <button onClick={(e) => playAudio(e, item.vocabulary?.audio_url, item.vocabulary?.word)} className="text-slate-400 hover:text-indigo-500 transition">
+                                                    <button onClick={(e) => playAudio(e, item.vocabulary?.audio_url, item.vocabulary?.word)} className="text-slate-400 hover:text-indigo-500 transition p-1 rounded-full hover:bg-slate-200">
                                                         <Volume2 size={18} />
                                                     </button>
                                                 </div>
                                                 <div className="text-sm text-slate-500">{item.vocabulary?.meaning}</div>
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right shrink-0">
                                             <div className="text-xs font-bold text-slate-400 mb-1">{timeAgo(item.updated_at)}</div>
                                             <div className={`text-[10px] font-bold px-2 py-0.5 rounded inline-block uppercase tracking-wide ${item.is_mastered ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                                 {item.is_mastered ? 'Öğrenildi' : 'Çalışılıyor'}
@@ -167,7 +167,15 @@ export default function Dashboard() {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-8 text-slate-400">Henüz kelime çalışılmadı.</div>
+                        <div className="text-center py-10 text-slate-400 flex flex-col items-center">
+                            <div className="bg-slate-100 p-3 rounded-full mb-3 text-slate-300">
+                                <BookOpen size={24} />
+                            </div>
+                            <p>Henüz kelime çalışılmadı.</p>
+                            <Link href="/learn" className="mt-4 text-indigo-600 font-bold text-sm hover:underline">
+                                İlk kelimeni öğrenmek için tıkla
+                            </Link>
+                        </div>
                     )}
                 </Card>
             </main>

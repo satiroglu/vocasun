@@ -1,27 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Crown, Star } from 'lucide-react'; // Yeni ikonlar
-import { Profile } from '@/types';
+import { ArrowLeft, Trophy, Crown, Star } from 'lucide-react';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
 
 export default function Leaderboard() {
-    const [leaders, setLeaders] = useState<Partial<Profile>[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchLeaders = async () => {
-            const { data } = await supabase
-                .from('profiles')
-                .select('username, first_name, last_name, total_xp, level, display_name_preference') // last_name ve display_name_preference eklendi
-                .order('total_xp', { ascending: false })
-                .limit(20);
-            if (data) setLeaders(data as Partial<Profile>[]);
-            setLoading(false);
-        };
-        fetchLeaders();
-    }, []);
+    const { data: leaders = [], isLoading: loading } = useLeaderboard();
 
     return (
         <div className="min-h-screen bg-slate-50 px-4 pt-6 pb-10 flex flex-col items-center font-sans">

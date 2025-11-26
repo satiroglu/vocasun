@@ -8,54 +8,15 @@ import {
     Sun, Menu, X, LogOut,
     LayoutDashboard, BookOpen, Trophy, Settings, HelpCircle, User
 } from 'lucide-react';
-import { Profile } from '@/types';
+import { useUser } from '@/hooks/useUser';
+import { useProfile } from '@/hooks/useProfile';
 
 export default function Navbar() {
-    const [user, setUser] = useState<any>(null);
-    const [profile, setProfile] = useState<Profile | null>(null);
+    const { user } = useUser(); // Optimize edilmiş auth hook
+    const { data: profile } = useProfile(user?.id); // Optimize edilmiş profil hook (cache'li)
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-
-    // Profil Verisini Çeken Fonksiyon
-    const getProfile = async (userId: string) => {
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .maybeSingle();
-
-            if (error) console.error('Navbar Profil Hatası:', error.message);
-            if (data) setProfile(data as Profile);
-        } catch (err) {
-            console.error('Beklenmedik hata:', err);
-        }
-    };
-
-    useEffect(() => {
-        const mountAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                setUser(session.user);
-                await getProfile(session.user.id);
-            }
-        };
-        mountAuth();
-
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                await getProfile(session.user.id);
-            } else {
-                setProfile(null);
-            }
-        });
-
-        return () => {
-            authListener.subscription.unsubscribe();
-        };
-    }, []);
 
     // Sayfa değiştiğinde mobil menüyü kapat
     useEffect(() => {
@@ -65,8 +26,6 @@ export default function Navbar() {
     const handleLogout = async () => {
         setIsMenuOpen(false);
         await supabase.auth.signOut();
-        setProfile(null);
-        setUser(null);
         router.push('/login');
         router.refresh();
     };

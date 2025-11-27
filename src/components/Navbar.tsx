@@ -40,7 +40,7 @@ export default function Navbar() {
     };
 
     const navLinks = [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Öğren', href: '/learn', icon: BookOpen },
         { name: 'Liderlik', href: '/leaderboard', icon: Trophy },
         { name: 'Nasıl?', href: '/info', icon: HelpCircle },
@@ -52,7 +52,7 @@ export default function Navbar() {
     if (authPages.includes(pathname)) return null;
 
     return (
-        <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-all duration-300 h-16">
+        <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300 h-16">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 h-full">
                 <div className="flex justify-between items-center h-full">
 
@@ -74,7 +74,7 @@ export default function Navbar() {
                                     <Link
                                         key={link.href}
                                         href={link.href}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap border
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap border
                       ${isActive
                                                 ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
                                                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-transparent'
@@ -94,16 +94,20 @@ export default function Navbar() {
                             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
                                 <Link
                                     href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
-                                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
+                                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group bg-slate-50/80 p-1.5 pr-4 rounded-xl border border-slate-100/50"
                                 >
-                                    <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center border border-indigo-100 group-hover:border-indigo-300 transition-colors">
-                                        <User size={18} />
+                                    <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100 group-hover:border-indigo-300 transition-colors overflow-hidden">
+                                        {profile?.avatar_url ? (
+                                            <img src={profile.avatar_url} alt={getDisplayName()} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User size={18} className="text-indigo-600" />
+                                        )}
                                     </div>
 
                                     <div className="text-right hidden lg:block leading-tight">
                                         <div className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{getDisplayName()}</div>
-                                        <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 rounded inline-block">
-                                            {profile ? `${profile.total_xp} XP` : '...'}
+                                        <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md inline-block">
+                                            {profile ? `Seviye ${profile.level}` : '...'}
                                         </div>
                                     </div>
                                 </Link>
@@ -159,12 +163,16 @@ export default function Navbar() {
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-4 hover:bg-slate-100 transition-colors active:scale-[0.98]"
                                     >
-                                        <div className="bg-white p-2.5 rounded-full shadow-sm text-indigo-600">
-                                            <User size={20} />
+                                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm text-indigo-600 flex items-center justify-center overflow-hidden border border-slate-100">
+                                            {profile?.avatar_url ? (
+                                                <img src={profile.avatar_url} alt={getDisplayName()} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <User size={20} />
+                                            )}
                                         </div>
                                         <div>
                                             <div className="font-bold text-slate-900">{getDisplayName()}</div>
-                                            <div className="text-xs font-medium text-slate-500">{profile ? `${profile.total_xp} XP` : '...'}</div>
+                                            <div className="text-xs font-medium text-slate-500">{profile ? `Seviye ${profile.level}` : '...'}</div>
                                         </div>
                                     </Link>
 

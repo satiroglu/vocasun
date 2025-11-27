@@ -29,15 +29,27 @@ async function fetchLearnSession(userId: string): Promise<SessionData> {
 
     const limit = profile?.daily_goal || 10;
 
-    // 1. Kelimeleri çek (rastgele limit kadar kelime)
+    // 1. Tüm kelime ID'lerini çek (Rastgelelik için)
+    const { data: allIds } = await supabase
+        .from('vocabulary')
+        .select('id');
+
+    if (!allIds || allIds.length === 0) {
+        return { words: [], progressMap: {} };
+    }
+
+    // 2. Rastgele ID'ler seç
+    // Not: Bu yöntem küçük/orta ölçekli veritabanları için uygundur. 
+    // Çok büyük verilerde RPC (stored procedure) kullanmak daha verimlidir.
+    const shuffledIds = allIds.map(item => item.id)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, limit);
+
+    // 3. Seçilen ID'lerin detaylarını çek
     const { data: words } = await supabase
         .from('vocabulary')
         .select('*')
-        .limit(limit);
-
-    if (!words || words.length === 0) {
-        return { words: [], progressMap: {} };
-    }
+        .in('id', shuffledIds);
 
     const shuffledWords = (words as VocabularyItem[]).sort(() => Math.random() - 0.5);
 

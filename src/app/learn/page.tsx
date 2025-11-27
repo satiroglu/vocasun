@@ -17,7 +17,7 @@ type FeedbackStatus = 'idle' | 'success' | 'error';
 export default function Learn() {
     // Hooks
     const { user } = useUser();
-    const { data: sessionData, isLoading: sessionLoading, refetch: refetchSession } = useLearnSession(user?.id);
+    const { data: sessionData, isLoading: sessionLoading, isRefetching, refetch: refetchSession } = useLearnSession(user?.id);
     const saveProgressMutation = useSaveProgress();
 
     // State Yönetimi
@@ -161,7 +161,7 @@ export default function Learn() {
     }, [status, showFullResult, mode, options, currentWord]);
 
     // RENDER: LOADING
-    if (sessionLoading) return (
+    if (sessionLoading || isRefetching) return (
         <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-slate-50 pt-16">
             <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
             <p className="mt-4 text-indigo-600 font-bold animate-pulse">Oturum Hazırlanıyor...</p>
@@ -194,7 +194,7 @@ export default function Learn() {
                         Yeni Oturum Başlat
                     </Button>
                     <Link href="/dashboard" className="block">
-                        <Button variant="outline" className="w-full h-14 text-lg border-2">Dashboard'a Dön</Button>
+                        <Button variant="outline" className="w-full h-14 text-lg border-2">Panel'e Dön</Button>
                     </Link>
                 </div>
             </div>

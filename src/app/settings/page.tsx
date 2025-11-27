@@ -34,12 +34,12 @@ export default function Settings() {
     const [formData, setFormData] = useState({
         dailyGoal: 20,
         bio: '',
-        id: '', firstName: '', lastName: '', username: '', email: '', 
+        id: '', firstName: '', lastName: '', username: '', email: '',
         displayPreference: 'username',
         leaderboardVisibility: 'visible', // 'visible', 'anonymous', 'hidden'
         preferredWordList: 'general', // 'general', 'academic', 'business', 'toefl', 'ielts'
         difficultyLevel: 'mixed', // 'beginner', 'intermediate', 'advanced', 'mixed'
-        emailNotifications: true, 
+        emailNotifications: true,
         marketingEmails: false
     });
 
@@ -111,7 +111,7 @@ export default function Settings() {
         try {
             const { error } = await supabase
                 .from('profiles')
-                .update({ 
+                .update({
                     daily_goal: formData.dailyGoal,
                     preferred_word_list: formData.preferredWordList,
                     difficulty_level: formData.difficultyLevel
@@ -131,7 +131,7 @@ export default function Settings() {
         try {
             const { error } = await supabase
                 .from('profiles')
-                .update({ 
+                .update({
                     display_name_preference: formData.displayPreference,
                     leaderboard_visibility: formData.leaderboardVisibility
                 })
@@ -198,7 +198,7 @@ export default function Settings() {
             <div className="h-8 w-48 bg-slate-200 rounded-lg mb-2"></div>
             <div className="h-4 w-64 bg-slate-200 rounded-lg mb-8"></div>
             {[1, 2, 3].map(i => (
-                <div key={i} className="bg-white p-8 rounded-[2rem] border border-slate-100 h-64"></div>
+                <div key={i} className="bg-white p-8 rounded-xl border border-slate-100 h-64"></div>
             ))}
         </div>
     );
@@ -213,15 +213,6 @@ export default function Settings() {
                     <h1 className="text-3xl font-bold text-slate-900">Hesap Ayarları</h1>
                     <p className="text-slate-500">Profilini ve tercihlerini yönet.</p>
                 </div>
-                {/* Avatar UI (Mock) */}
-                <div className="hidden sm:flex items-center gap-3 bg-white p-2 pr-4 rounded-full border border-slate-100 shadow-sm">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
-                        {formData.firstName.charAt(0) || 'U'}
-                    </div>
-                    <div className="text-sm font-bold text-slate-700">
-                        {formData.firstName || 'Kullanıcı'}
-                    </div>
-                </div>
             </div>
 
             <div className="w-full max-w-3xl space-y-8">
@@ -235,23 +226,30 @@ export default function Settings() {
                 )}
 
                 {/* 1. KİŞİSEL BİLGİLER & AVATAR */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-8">
+                <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><User size={24} /></div>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">Kişisel Bilgiler</h2>
+                            <p className="text-sm text-slate-500">Profil bilgilerini ve fotoğrafını yönet.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-6 mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="relative group">
-                            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
-                                <User size={40} className="text-slate-300" />
+                            <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-sm overflow-hidden">
+                                <User size={32} className="text-slate-300" />
                             </div>
-                            <button className="absolute bottom-0 right-0 p-2 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition hover:scale-110">
-                                <Camera size={16} />
+                            <button className="absolute bottom-0 right-0 p-1.5 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition hover:scale-110">
+                                <Camera size={14} />
                             </button>
                         </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800">Profil Resmi</h2>
-                            <p className="text-sm text-slate-500 mb-2">Bu fotoğraf liderlik tablosunda görünecek.</p>
-                            <div className="flex gap-2">
-                                <button className="text-xs font-bold text-indigo-600 hover:underline">Yükle</button>
-                                <span className="text-slate-300">|</span>
-                                <button className="text-xs font-bold text-red-500 hover:underline">Kaldır</button>
+                        <div className="text-center sm:text-left">
+                            <h3 className="font-bold text-slate-800 text-sm">Profil Fotoğrafı</h3>
+                            <p className="text-xs text-slate-500 mb-3">Liderlik tablosunda diğer kullanıcılar bu fotoğrafı görecek.</p>
+                            <div className="flex justify-center sm:justify-start gap-2">
+                                <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition">Fotoğraf Yükle</button>
+                                <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-red-500 hover:border-red-200 hover:bg-red-50 transition">Kaldır</button>
                             </div>
                         </div>
                     </div>
@@ -308,7 +306,7 @@ export default function Settings() {
                 </section>
 
                 {/* 2. ÖĞRENİM SEÇENEKLERİ */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><BookOpen size={24} /></div>
                         <div>
@@ -357,11 +355,10 @@ export default function Settings() {
                                 <div
                                     key={list.value}
                                     onClick={() => setFormData({ ...formData, preferredWordList: list.value })}
-                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                        formData.preferredWordList === list.value
-                                            ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/20'
-                                            : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
-                                    }`}
+                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.preferredWordList === list.value
+                                        ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                                        : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                                        }`}
                                 >
                                     <div className="flex items-start justify-between mb-1">
                                         <span className="text-2xl">{list.icon}</span>
@@ -390,11 +387,10 @@ export default function Settings() {
                                 <div
                                     key={level.value}
                                     onClick={() => setFormData({ ...formData, difficultyLevel: level.value })}
-                                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                                        formData.difficultyLevel === level.value
-                                            ? `border-${level.color}-500 bg-${level.color}-50`
-                                            : 'border-slate-200 hover:border-slate-300'
-                                    }`}
+                                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all text-center ${formData.difficultyLevel === level.value
+                                        ? `border-${level.color}-500 bg-${level.color}-50`
+                                        : 'border-slate-200 hover:border-slate-300'
+                                        }`}
                                 >
                                     <div className="font-bold text-sm text-slate-800">{level.label}</div>
                                 </div>
@@ -409,8 +405,8 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* 3. GÖRÜNÜM & GİZLİLİK (Düzeltildi ve İyileştirildi) */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                {/* 3. GÖRÜNÜM & GİZLİLİK */}
+                <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl"><EyeIcon size={24} /></div>
                         <div>
@@ -468,16 +464,15 @@ export default function Settings() {
                             <h3 className="text-base font-bold text-slate-800">Liderlik Tablosu Gizliliği</h3>
                         </div>
                         <p className="text-sm text-slate-500 mb-4">Liderlik tablosunda nasıl görünmek istediğini seç.</p>
-                        
+
                         <div className="space-y-3">
                             {/* Görünür */}
                             <div
                                 onClick={() => setFormData({ ...formData, leaderboardVisibility: 'visible' })}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                    formData.leaderboardVisibility === 'visible'
-                                        ? 'border-green-500 bg-green-50/50'
-                                        : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
-                                }`}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.leaderboardVisibility === 'visible'
+                                    ? 'border-green-500 bg-green-50/50'
+                                    : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -498,11 +493,10 @@ export default function Settings() {
                             {/* Anonim */}
                             <div
                                 onClick={() => setFormData({ ...formData, leaderboardVisibility: 'anonymous' })}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                    formData.leaderboardVisibility === 'anonymous'
-                                        ? 'border-amber-500 bg-amber-50/50'
-                                        : 'border-slate-200 hover:border-amber-300 hover:bg-slate-50'
-                                }`}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.leaderboardVisibility === 'anonymous'
+                                    ? 'border-amber-500 bg-amber-50/50'
+                                    : 'border-slate-200 hover:border-amber-300 hover:bg-slate-50'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -523,11 +517,10 @@ export default function Settings() {
                             {/* Gizli */}
                             <div
                                 onClick={() => setFormData({ ...formData, leaderboardVisibility: 'hidden' })}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                    formData.leaderboardVisibility === 'hidden'
-                                        ? 'border-red-500 bg-red-50/50'
-                                        : 'border-slate-200 hover:border-red-300 hover:bg-slate-50'
-                                }`}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.leaderboardVisibility === 'hidden'
+                                    ? 'border-red-500 bg-red-50/50'
+                                    : 'border-slate-200 hover:border-red-300 hover:bg-slate-50'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -555,7 +548,7 @@ export default function Settings() {
                 </section>
 
                 {/* 4. BİLDİRİM AYARLARI */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl"><Bell size={24} /></div>
                         <div>
@@ -602,7 +595,7 @@ export default function Settings() {
                 </section>
 
                 {/* 5. GÜVENLİK & ŞİFRE */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><Shield size={24} /></div>
                         <div>
@@ -659,10 +652,10 @@ export default function Settings() {
                 </section>
 
                 {/* 5. TEHLİKELİ BÖLGE */}
-                <section className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-red-100 relative overflow-hidden transition-all hover:shadow-md hover:border-red-200">
+                <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-red-100 relative overflow-hidden transition-all hover:shadow-md hover:border-red-200">
                     <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                     <div className="flex items-center gap-3 mb-4 pl-2">
-                        <div className="p-2 bg-red-50 text-red-600 rounded-xl"><AlertTriangle size={24} /></div>
+                        <div className="p-2.5 bg-red-50 text-red-600 rounded-xl"><AlertTriangle size={24} /></div>
                         <h2 className="text-lg font-bold text-slate-800">Tehlikeli Bölge</h2>
                     </div>
                     <p className="text-slate-500 text-sm mb-6 pl-2">

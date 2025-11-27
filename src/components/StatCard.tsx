@@ -9,7 +9,7 @@ interface StatCardProps {
 
 const StatCard = ({ icon, label, value, bg = 'bg-indigo-50' }: StatCardProps) => {
     return (
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition">
+        <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition">
             <div className={`p-3 rounded-xl ${bg} w-12 h-12 flex items-center justify-center`}>
                 {icon}
             </div>

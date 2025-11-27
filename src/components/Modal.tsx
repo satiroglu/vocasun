@@ -29,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, icon, t
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-100 relative animate-scale-up">
+            <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl border border-slate-100 relative animate-scale-up">
                 {onClose && (
                     <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-50 rounded-full text-slate-400 hover:text-slate-600 transition">
                         <X size={20} />

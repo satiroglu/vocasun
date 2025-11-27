@@ -54,7 +54,7 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
             `)
             .eq('user_id', userId)
             .order('updated_at', { ascending: false })
-            .limit(5),
+            .limit(6),
 
         // 4. Günlük İlerleme
         supabase

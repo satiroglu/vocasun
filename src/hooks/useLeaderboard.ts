@@ -21,7 +21,7 @@ export function useLeaderboard() {
     return useQuery({
         queryKey: ['leaderboard'],
         queryFn: fetchLeaderboard,
-        staleTime: 2 * 60 * 1000, // 2 dakika - lider tablosu sık değişmez
+        staleTime: 0, // Her zaman güncel veri çek
     });
 }
 

@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { Lock, Eye, EyeOff, Save, CheckCircle, AlertCircle, Sun } from 'lucide-react';
+import { Lock, Eye, EyeOff, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import Logo from '@/components/Logo';
 
 export default function UpdatePassword() {
     const router = useRouter();
@@ -42,10 +43,7 @@ export default function UpdatePassword() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
 
-            <Link href="/" className="mb-6 sm:mb-8 flex items-center gap-2.5 text-indigo-600 font-bold text-2xl sm:text-3xl hover:opacity-80 transition group">
-                <Sun className="w-8 h-8 sm:w-10 sm:h-10 group-hover:rotate-180 transition-transform duration-700" />
-                <span>Vocasun</span>
-            </Link>
+            <Logo className="mb-6 sm:mb-8" />
 
             <div className="bg-white w-full max-w-md p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl shadow-indigo-100/50 border border-slate-200/50">
                 <div className="text-center mb-6 sm:mb-8">

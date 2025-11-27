@@ -29,12 +29,22 @@ export default function Learn() {
     const [status, setStatus] = useState<FeedbackStatus>('idle');
     const [flipped, setFlipped] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null); // Ses kontrolü için ref
     const [showFullResult, setShowFullResult] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const queue = sessionData?.words || [];
+    // Local Queue State for Retry Logic
+    const [localQueue, setLocalQueue] = useState<VocabularyItem[]>([]);
+
+    // Initialize localQueue when sessionData is loaded
+    useEffect(() => {
+        if (sessionData?.words) {
+            setLocalQueue(sessionData.words);
+        }
+    }, [sessionData]);
+
     const progressMap = sessionData?.progressMap || {};
-    const currentWord = queue[currentIndex];
+    const currentWord = localQueue[currentIndex];
     const currentProgress = currentWord ? progressMap[currentWord.id] : undefined;
 
     // Şıkları çek (choice modu için)
@@ -47,6 +57,7 @@ export default function Learn() {
         setCurrentIndex(0);
         setSessionStats({ correct: 0, wrong: 0, earnedXp: 0 });
         setIsSessionFinished(false);
+        setLocalQueue([]); // Clear queue to trigger re-init
         refetchSession();
     };
 
@@ -64,12 +75,30 @@ export default function Learn() {
     }, [currentIndex, mode]);
 
     // ETKİLEŞİM HANDLERS
+    // Ses Durdurma Fonksiyonu
+    const stopAudio = () => {
+        // 1. HTML Audio varsa durdur
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current = null;
+        }
+        // 2. Speech Synthesis varsa durdur
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+    };
+
     const playAudio = (text?: string) => {
+        stopAudio(); // Önceki sesi durdur
+
         const wordToPlay = text || currentWord?.word;
         if (!wordToPlay) return;
 
         if (currentWord?.audio_url && !text) {
-            new Audio(currentWord.audio_url).play().catch(() => { });
+            const audio = new Audio(currentWord.audio_url);
+            audioRef.current = audio; // Ref'e ata
+            audio.play().catch(() => { });
         } else {
             const u = new SpeechSynthesisUtterance(wordToPlay);
             u.lang = 'en-US';
@@ -90,6 +119,9 @@ export default function Learn() {
         } else {
             playAudio();
             setSessionStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
+
+            // RETRY LOGIC: Append wrong answer to the end of the queue
+            setLocalQueue(prev => [...prev, currentWord]);
         }
 
         // İlerlemeyi kaydet
@@ -125,7 +157,8 @@ export default function Learn() {
     };
 
     const nextQuestion = () => {
-        if (currentIndex < queue.length - 1) {
+        stopAudio(); // Soru geçerken sesi kes
+        if (currentIndex < localQueue.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
             setIsSessionFinished(true);
@@ -161,7 +194,7 @@ export default function Learn() {
     }, [status, showFullResult, mode, options, currentWord]);
 
     // RENDER: LOADING
-    if (sessionLoading || isRefetching) return (
+    if (sessionLoading || isRefetching || localQueue.length === 0) return (
         <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-slate-50 pt-16">
             <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
             <p className="mt-4 text-indigo-600 font-bold animate-pulse">Oturum Hazırlanıyor...</p>
@@ -259,11 +292,11 @@ export default function Learn() {
                     <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-full"
-                            style={{ width: `${((currentIndex) / queue.length) * 100}%` }}
+                            style={{ width: `${((currentIndex) / localQueue.length) * 100}%` }}
                         ></div>
                     </div>
                     <div className="text-[10px] text-right text-slate-400 font-bold mt-1">
-                        Soru {currentIndex + 1} / {queue.length}
+                        Soru {currentIndex + 1} / {localQueue.length}
                     </div>
                 </div>
 
@@ -368,83 +401,88 @@ export default function Learn() {
                                 </button>
                             ))}
                         </div>
-                    )}
+                    )
+                    }
 
                     {/* --- MOD: KART (Flip) --- */}
-                    {mode === 'flip' && !showFullResult && (
-                        <div className="w-full min-h-[300px] perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
-                            <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
-                                {/* Ön Yüz: Türkçe */}
-                                <div className="absolute w-full h-full bg-white rounded-xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow">
-                                    <div className="text-3xl font-bold text-slate-800 mb-2">{currentWord.meaning}</div>
-                                    <div className="text-sm font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">Cevabı Gör</div>
-                                </div>
+                    {
+                        mode === 'flip' && !showFullResult && (
+                            <div className="w-full min-h-[300px] perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
+                                <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
+                                    {/* Ön Yüz: Türkçe */}
+                                    <div className="absolute w-full h-full bg-white rounded-xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow">
+                                        <div className="text-3xl font-bold text-slate-800 mb-2">{currentWord.meaning}</div>
+                                        <div className="text-sm font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">Cevabı Gör</div>
+                                    </div>
 
-                                {/* Arka Yüz: İngilizce */}
-                                <div className="absolute w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-slate-800 shadow-xl p-6">
-                                    <div className="text-3xl font-bold text-white mb-2">{currentWord.word}</div>
-                                    <p className="text-slate-400 text-sm italic text-center mb-6">"{currentWord.example_en}"</p>
+                                    {/* Arka Yüz: İngilizce */}
+                                    <div className="absolute w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-slate-800 shadow-xl p-6">
+                                        <div className="text-3xl font-bold text-white mb-2">{currentWord.word}</div>
+                                        <p className="text-slate-400 text-sm italic text-center mb-6">"{currentWord.example_en}"</p>
 
-                                    <div className="flex gap-3 w-full" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => handleAnswer(false)} className="flex-1 py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-xl font-bold hover:bg-red-500 hover:text-white transition">Bilmiyorum</button>
-                                        <button onClick={() => handleAnswer(true)} className="flex-1 py-3 bg-green-500/20 border border-green-500/50 text-green-400 rounded-xl font-bold hover:bg-green-500 hover:text-white transition">Biliyorum</button>
+                                        <div className="flex gap-3 w-full" onClick={(e) => e.stopPropagation()}>
+                                            <button onClick={() => handleAnswer(false)} className="flex-1 py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-xl font-bold hover:bg-red-500 hover:text-white transition">Bilmiyorum</button>
+                                            <button onClick={() => handleAnswer(true)} className="flex-1 py-3 bg-green-500/20 border border-green-500/50 text-green-400 rounded-xl font-bold hover:bg-green-500 hover:text-white transition">Biliyorum</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
-                </div>
-            </div>
+                </div >
+            </div >
 
             {/* --- SONUÇ OVERLAY (TAM EKRAN) --- */}
-            {showFullResult && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in p-6">
-                    <div className={`p-8 rounded-xl shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
+            {
+                showFullResult && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in p-6">
+                        <div className={`p-8 rounded-xl shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
 
-                        {/* Arka Plan Efekti */}
-                        <div className={`absolute top-0 left-0 w-full h-2 ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            {/* Arka Plan Efekti */}
+                            <div className={`absolute top-0 left-0 w-full h-2 ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
 
-                        {/* İkon */}
-                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg ${status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                            {status === 'success' ? <Check size={40} strokeWidth={4} /> : <X size={40} strokeWidth={4} />}
-                        </div>
-
-                        {/* Metin */}
-                        <h3 className={`text-2xl font-black mb-6 ${status === 'success' ? 'text-slate-800' : 'text-slate-800'}`}>
-                            {status === 'success' ? 'Harika, Doğru!' : 'Üzgünüm, Yanlış!'}
-                        </h3>
-
-                        {/* Doğru Cevap Kartı */}
-                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-6 relative">
-                            {/* Eski Label yerine Badge'ler */}
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                <WordBadges small />
+                            {/* İkon */}
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg ${status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                {status === 'success' ? <Check size={40} strokeWidth={4} /> : <X size={40} strokeWidth={4} />}
                             </div>
 
-                            <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4">
-                                {currentWord.word}
-                                <button onClick={() => playAudio()} className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-110 transition">
-                                    <Volume2 size={20} />
-                                </button>
-                            </div>
-                            <p className="text-sm text-slate-500 italic">"{currentWord.example_en}"</p>
-                            <div className="mt-3 h-px w-full bg-slate-200"></div>
-                            <p className="text-sm text-slate-400 mt-2">{currentWord.example_tr}</p>
-                        </div>
+                            {/* Metin */}
+                            <h3 className={`text-2xl font-black mb-6 ${status === 'success' ? 'text-slate-800' : 'text-slate-800'}`}>
+                                {status === 'success' ? 'Harika, Doğru!' : 'Üzgünüm, Yanlış!'}
+                            </h3>
 
-                        {/* Devam Butonu - OTO ODAKLANMA */}
-                        <button
-                            onClick={nextQuestion}
-                            autoFocus
-                            className={`w-full py-4 rounded-xl font-bold text-white text-lg shadow-xl transition active:scale-95 flex items-center justify-center gap-2 ${status === 'success' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-slate-800 hover:bg-slate-900 shadow-slate-300'}`}
-                        >
-                            Devam Et <span className="opacity-50 text-xs font-normal">(Enter)</span>
-                        </button>
+                            {/* Doğru Cevap Kartı */}
+                            <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-6 relative">
+                                {/* Eski Label yerine Badge'ler */}
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                    <WordBadges small />
+                                </div>
+
+                                <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4">
+                                    {currentWord.word}
+                                    <button onClick={() => playAudio()} className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-110 transition">
+                                        <Volume2 size={20} />
+                                    </button>
+                                </div>
+                                <p className="text-sm text-slate-500 italic">"{currentWord.example_en}"</p>
+                                <div className="mt-3 h-px w-full bg-slate-200"></div>
+                                <p className="text-sm text-slate-400 mt-2">{currentWord.example_tr}</p>
+                            </div>
+
+                            {/* Devam Butonu - OTO ODAKLANMA */}
+                            <button
+                                onClick={nextQuestion}
+                                autoFocus
+                                className={`w-full py-4 rounded-xl font-bold text-white text-lg shadow-xl transition active:scale-95 flex items-center justify-center gap-2 ${status === 'success' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-slate-800 hover:bg-slate-900 shadow-slate-300'}`}
+                            >
+                                Devam Et <span className="opacity-50 text-xs font-normal">(Enter)</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-        </div>
+        </div >
     );
 }

@@ -5,19 +5,13 @@ import Link from 'next/link';
 import { Trophy, TrendingUp, Clock, ChevronRight, Volume2, BookOpen, Sun, Target, Zap, Sparkles } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { useDashboard } from '@/hooks/useDashboard';
-import { useEffect } from 'react';
 
 export default function Dashboard() {
     const router = useRouter();
     const { user, loading: userLoading } = useUser();
     const { data, isLoading: dashboardLoading } = useDashboard(user?.id);
 
-    // Kullanıcı yoksa login'e yönlendir
-    useEffect(() => {
-        if (!userLoading && !user) {
-            router.push('/login');
-        }
-    }, [user, userLoading, router]);
+    // Auth check handled by AuthGuard in layout
 
     const loading = userLoading || dashboardLoading;
     const profile = data?.profile;

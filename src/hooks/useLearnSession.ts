@@ -29,29 +29,22 @@ async function fetchLearnSession(userId: string): Promise<SessionData> {
 
     const limit = profile?.daily_goal || 10;
 
-    // 1. Tüm kelime ID'lerini çek (Rastgelelik için)
-    const { data: allIds } = await supabase
-        .from('vocabulary')
-        .select('id');
+    // 1. Rastgele kelimeleri veritabanından çek (RPC ile optimize edildi)
+    // Eski yöntem: Tüm ID'leri çek -> Karıştır -> Seç (Çok yavaştı)
+    // Yeni yöntem: Veritabanında karıştır ve sadece gerekli sayıyı çek
+    const { data: words, error } = await supabase
+        .rpc('get_random_words', { limit_count: limit });
 
-    if (!allIds || allIds.length === 0) {
+    if (error) {
+        console.error('Error fetching random words:', error);
         return { words: [], progressMap: {} };
     }
 
-    // 2. Rastgele ID'ler seç
-    // Not: Bu yöntem küçük/orta ölçekli veritabanları için uygundur. 
-    // Çok büyük verilerde RPC (stored procedure) kullanmak daha verimlidir.
-    const shuffledIds = allIds.map(item => item.id)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, limit);
+    const shuffledWords = (words as VocabularyItem[]) || [];
 
-    // 3. Seçilen ID'lerin detaylarını çek
-    const { data: words } = await supabase
-        .from('vocabulary')
-        .select('*')
-        .in('id', shuffledIds);
-
-    const shuffledWords = (words as VocabularyItem[]).sort(() => Math.random() - 0.5);
+    if (shuffledWords.length === 0) {
+        return { words: [], progressMap: {} };
+    }
 
     // 2. Bu kelimelerin ilerleme durumlarını çek
     const wordIds = shuffledWords.map(w => w.id);

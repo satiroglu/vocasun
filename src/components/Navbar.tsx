@@ -47,9 +47,9 @@ export default function Navbar() {
         { name: 'Ayarlar', href: '/settings', icon: Settings },
     ];
 
-    // Auth sayfalarında navbar gösterme
-    const authPages = ['/login', '/register', '/forgot-password', '/update-password'];
-    if (authPages.includes(pathname)) return null;
+    // Auth sayfalarında ve Learn sayfasında navbar gösterme
+    const hiddenPages = ['/login', '/register', '/forgot-password', '/update-password', '/learn'];
+    if (hiddenPages.includes(pathname)) return null;
 
     return (
         <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300 h-16">

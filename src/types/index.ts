@@ -36,6 +36,7 @@ export interface UserProgress {
     is_mastered: boolean;
     interval: number;
     ease_factor: number;
+    repetitions: number;
     next_review: string;
     updated_at: string;
     vocabulary?: Vocabulary;

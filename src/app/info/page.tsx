@@ -1,6 +1,7 @@
 'use client';
 
 import { Info as InfoIcon, Brain, Trophy, CheckCircle, Clock, Sparkles, Sun, Target, TrendingUp, BookOpen, PenTool, LayoutGrid } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function Info() {
     return (
@@ -171,11 +172,8 @@ export default function Info() {
 
                     {/* --- Footer (Logo Entegrasyonu) --- */}
                     <footer className="pt-6 pb-6 flex flex-col items-center justify-center gap-3 opacity-80 hover:opacity-100 transition">
-                        <div className="p-3 bg-white rounded-full shadow-md shadow-indigo-100 border border-slate-50">
-                            <Sun className="w-8 h-8 text-indigo-500 fill-indigo-500/20 animate-[spin_10s_linear_infinite]" />
-                        </div>
+                        <Logo />
                         <div className="text-center">
-                            <p className="text-sm font-bold text-slate-600 tracking-wide">VOCASUN</p>
                             <p className="text-xs text-slate-400">Her gün yeni bir kelime doğar.</p>
                         </div>
                     </footer>

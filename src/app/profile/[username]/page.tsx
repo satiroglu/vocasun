@@ -1,95 +1,225 @@
-// src/app/profile/[username]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Profile } from '@/types';
-import { User, Trophy, Calendar, Target } from 'lucide-react';
+import { Profile, UserProgress } from '@/types';
+import { User, Trophy, Calendar, Target, BookOpen, Clock, Medal } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/Button';
+
+// Extended profile type to include stats
+interface ProfileData extends Profile {
+    learned_count?: number;
+    recent_activity?: UserProgress[];
+}
 
 export default function UserProfile() {
     const params = useParams();
     const username = params.username as string;
-    const [profile, setProfile] = useState<Profile | null>(null);
+    const [profile, setProfile] = useState<ProfileData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchProfile = async () => {
-            // Username ile profil bul
-            // Not: Supabase'de username sütunu unique olmalıdır.
-            const { data, error } = await supabase
+        const fetchProfileData = async () => {
+            setLoading(true);
+
+            // 1. Fetch Profile
+            const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('username', username)
                 .single();
+            if (profileError || !profileData) {
+                setLoading(false);
+                return;
+            }
 
-            if (data) setProfile(data);
+            // 2. Fetch Learned Words Count
+            const { count: learnedCount } = await supabase
+                .from('user_progress')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', profileData.id)
+                .eq('is_mastered', true);
+
+            // 3. Fetch Recent Activity (Last 7 Days)
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+            const { data: recentActivity } = await supabase
+                .from('user_progress')
+                .select(`
+                    *,
+                    vocabulary ( word, meaning )
+                `)
+                .eq('user_id', profileData.id)
+                .gte('updated_at', oneWeekAgo.toISOString())
+                .order('updated_at', { ascending: false })
+                .limit(5);
+
+            setProfile({
+                ...profileData,
+                learned_count: learnedCount || 0,
+                recent_activity: recentActivity || []
+            });
             setLoading(false);
         };
-        fetchProfile();
+
+        if (username) {
+            fetchProfileData();
+        }
     }, [username]);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center pt-20">Yükleniyor...</div>;
-
-    if (!profile) return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-20">
-            <h2 className="text-2xl font-bold text-slate-800">Kullanıcı Bulunamadı</h2>
-            <Link href="/dashboard"><Button variant="outline">Anasayfaya Dön</Button></Link>
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center pt-20 bg-slate-50">
+            <div className="animate-pulse flex flex-col items-center">
+                <div className="w-16 h-16 bg-slate-200 rounded-full mb-4"></div>
+                <div className="h-4 w-32 bg-slate-200 rounded"></div>
+            </div>
         </div>
     );
 
-    // İsim Gösterimi (Gizlilik ayarına göre)
+    if (!profile) return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-20 bg-slate-50 px-4 text-center">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 max-w-md w-full">
+                <User size={48} className="text-slate-300 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Kullanıcı Bulunamadı</h2>
+                <p className="text-slate-500 mb-6">Aradığınız profil mevcut değil veya gizli olabilir.</p>
+                <Link href="/dashboard"><Button className="w-full">Anasayfaya Dön</Button></Link>
+            </div>
+        </div>
+    );
+
+    // Display Name Logic
     const displayName = profile.display_name_preference === 'fullname' && profile.first_name
         ? `${profile.first_name} ${profile.last_name || ''}`
         : profile.username;
 
+    const joinDate = new Date(profile.created_at).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+
     return (
         <div className="min-h-screen bg-slate-50 pt-20 pb-20 px-4 font-sans">
-            <div className="max-w-2xl mx-auto">
-                {/* Profil Kartı */}
-                <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-indigo-100 border border-slate-100 text-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-500 to-purple-600"></div>
+            <div className="max-w-4xl mx-auto space-y-6">
 
-                    <div className="relative z-10">
-                        <div className="w-32 h-32 mx-auto bg-white rounded-full p-1.5 shadow-lg mb-4">
-                            <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center overflow-hidden">
+                {/* Profile Header Card */}
+                <div className="bg-white rounded-2xl shadow-xl shadow-indigo-100/50 border border-slate-100 overflow-hidden relative">
+                    {/* Banner */}
+                    <div className="h-24 sm:h-48 bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 relative">
+                        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
+                    </div>
+
+                    <div className="px-6 sm:px-10 pb-8 relative">
+                        {/* Avatar */}
+                        <div className="absolute -top-12 sm:-top-20 left-6 sm:left-10">
+                            <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center overflow-hidden">
                                 {profile.avatar_url ? (
                                     <img src={profile.avatar_url} alt={displayName || ''} className="w-full h-full object-cover" />
                                 ) : (
-                                    <User size={48} className="text-slate-300" />
+                                    <User size={40} className="text-slate-300 sm:w-16 sm:h-16" />
                                 )}
                             </div>
                         </div>
 
-                        <h1 className="text-3xl font-bold text-slate-900 mb-1">{displayName}</h1>
-                        <p className="text-slate-500 font-medium mb-6">@{profile.username}</p>
+                        {/* Actions (Top Right) */}
+                        <div className="flex justify-end pt-4 mb-10 sm:mb-0 sm:h-20">
+                            {/* Placeholder for future actions like 'Follow' or 'Edit Profile' */}
+                        </div>
 
-                        {profile.bio && (
-                            <p className="text-slate-600 mb-8 max-w-md mx-auto italic">"{profile.bio}"</p>
-                        )}
+                        {/* User Info */}
+                        <div className="mt-2 sm:mt-2">
+                            <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-1">{displayName}</h1>
+                            <p className="text-slate-500 font-medium text-base sm:text-lg mb-4">@{profile.username}</p>
 
-                        {/* İstatistikler Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-left">
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                <div className="flex items-center gap-2 text-slate-400 mb-1 text-xs font-bold uppercase"><Trophy size={14} /> Toplam XP</div>
-                                <div className="text-xl font-black text-indigo-600">{profile.total_xp}</div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                <div className="flex items-center gap-2 text-slate-400 mb-1 text-xs font-bold uppercase"><Target size={14} /> Seviye</div>
-                                <div className="text-xl font-black text-purple-600">{profile.level}</div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 col-span-2 sm:col-span-1">
-                                <div className="flex items-center gap-2 text-slate-400 mb-1 text-xs font-bold uppercase"><Calendar size={14} /> Katılım</div>
-                                <div className="text-sm font-bold text-slate-700">
-                                    {new Date(profile.created_at).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
-                                </div>
+                            {profile.bio && (
+                                <p className="text-slate-600 max-w-2xl text-sm sm:text-lg leading-relaxed mb-6">
+                                    {profile.bio}
+                                </p>
+                            )}
+
+                            <div className="flex items-center gap-2 text-slate-400 text-xs sm:text-sm font-medium bg-slate-50 inline-flex px-3 py-1.5 rounded-xl border border-slate-100">
+                                <Calendar size={14} />
+                                <span>Katılım: {joinDate}</span>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <StatCard
+                        icon={<Trophy size={20} className="text-yellow-600" />}
+                        label="Toplam XP"
+                        value={profile.total_xp.toLocaleString()}
+                        color="bg-yellow-50 border-yellow-100"
+                    />
+                    <StatCard
+                        icon={<Target size={20} className="text-purple-600" />}
+                        label="Seviye"
+                        value={profile.level}
+                        color="bg-purple-50 border-purple-100"
+                    />
+                    <StatCard
+                        icon={<BookOpen size={20} className="text-indigo-600" />}
+                        label="Öğrenilen Kelime"
+                        value={profile.learned_count || 0}
+                        color="bg-indigo-50 border-indigo-100"
+                    />
+                    <StatCard
+                        icon={<Medal size={20} className="text-emerald-600" />}
+                        label="Başarı Puanı"
+                        value="Top %5" // Placeholder logic, could be calculated
+                        color="bg-emerald-50 border-emerald-100"
+                    />
+                </div>
+
+                {/* Recent Activity Section */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                            <Clock size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-900">Son Aktiviteler</h2>
+                    </div>
+
+                    {profile.recent_activity && profile.recent_activity.length > 0 ? (
+                        <div className="space-y-3">
+                            {profile.recent_activity.map((activity, index) => (
+                                <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-indigo-200 hover:shadow-sm transition-all group">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-2 h-2 rounded-full ${activity.is_mastered ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                                        <div>
+                                            <div className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                                                {activity.vocabulary?.word}
+                                            </div>
+                                            <div className="text-xs text-slate-500">
+                                                {activity.vocabulary?.meaning}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-slate-400 font-medium">
+                                        {new Date(activity.updated_at).toLocaleDateString('tr-TR')}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-10 text-slate-400">
+                            <p>Henüz bir aktivite yok.</p>
+                        </div>
+                    )}
+                </div>
+
             </div>
+        </div>
+    );
+}
+
+function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string | number, color: string }) {
+    return (
+        <div className={`p-5 rounded-2xl border ${color} flex flex-col items-start justify-center gap-2 transition-transform hover:-translate-y-1`}>
+            <div className="mb-1">{icon}</div>
+            <div className="text-2xl font-bold text-slate-800">{value}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</div>
         </div>
     );
 }

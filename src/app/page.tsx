@@ -4,13 +4,14 @@ import {
   CheckCircle, Trophy, Users, Star, Sparkles, GraduationCap
 } from 'lucide-react';
 import Button from '@/components/Button';
+import Logo from '@/components/Logo';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
 
       {/* --- Hero Section --- */}
-      <header className="relative pt-28 pb-24 lg:pt-32 lg:pb-32 overflow-hidden">
+      <header className="relative pt-24 pb-20 lg:pt-32 lg:pb-32 overflow-hidden">
         {/* Dynamic Background Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-400/20 rounded-full blur-[100px] animate-pulse"></div>
@@ -27,7 +28,7 @@ export default function Home() {
               <span>Yapay Zeka Destekli Öğrenme</span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
               Kelime Ezberleme, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600">
                 Kalıcı Öğren.
@@ -66,7 +67,7 @@ export default function Home() {
           {/* Right: Visual Demo */}
           <div className="relative hidden lg:block perspective-1000">
             {/* Floating Card Demo */}
-            <div className="relative w-80 h-[420px] mx-auto bg-white rounded-[2rem] shadow-2xl shadow-indigo-200/50 border border-white/50 flex flex-col p-8 rotate-3 hover:rotate-0 transition duration-500 group cursor-default backdrop-blur-sm">
+            <div className="relative w-80 h-[420px] mx-auto bg-white rounded-xl shadow-2xl shadow-indigo-200/50 border border-white/50 flex flex-col p-8 rotate-3 hover:rotate-0 transition duration-500 group cursor-default backdrop-blur-sm">
               <div className="flex justify-between items-center mb-10">
                 <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full border border-indigo-100">B2 Seviye</span>
                 <span className="bg-slate-50 text-slate-500 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-100">Fiil</span>
@@ -88,7 +89,7 @@ export default function Home() {
               </div>
 
               {/* Floating Badge */}
-              <div className="absolute -right-8 top-24 bg-white p-3 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 animate-bounce">
+              <div className="absolute -right-8 top-24 bg-white p-3 rounded-xl shadow-xl border border-slate-100 flex items-center gap-3 animate-bounce">
                 <div className="bg-yellow-100 p-2 rounded-full text-yellow-600"><Trophy size={20} /></div>
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase">Kazanılan</div>
@@ -181,14 +182,14 @@ export default function Home() {
 
       {/* --- Call to Action --- */}
       <section className="py-24 px-6 bg-slate-50">
-        <div className="max-w-5xl mx-auto bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2.5rem] p-12 md:p-20 text-center text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
+        <div className="max-w-5xl mx-auto bg-gradient-to-br from-indigo-600 to-violet-700 rounded-xl p-12 md:p-20 text-center text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
           <div className="relative z-10">
             <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Kelime Hazineni Genişletmeye Hazır mısın?</h2>
             <p className="text-indigo-100 text-lg md:text-xl mb-10 max-w-2xl mx-auto font-medium">
               Binlerce kullanıcı arasına katıl ve İngilizce öğrenme yolculuğunu hızlandır. Tamamen ücretsiz.
             </p>
             <Link href="/register">
-              <button className="bg-white text-indigo-600 px-10 py-4 rounded-2xl font-bold text-xl hover:bg-indigo-50 transition shadow-lg hover:scale-105 active:scale-95">
+              <button className="bg-white text-indigo-600 px-10 py-4 rounded-xl font-bold text-xl hover:bg-indigo-50 transition shadow-lg hover:scale-105 active:scale-95">
                 Hemen Başla
               </button>
             </Link>
@@ -204,10 +205,7 @@ export default function Home() {
       <footer className="bg-white border-t border-slate-100 py-16">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-2 text-indigo-600">
-              <Sun className="w-8 h-8 fill-indigo-600/20" />
-              <span className="text-2xl font-bold tracking-tight">Vocasun</span>
-            </div>
+            <Logo />
             <p className="text-slate-500 text-sm max-w-xs text-center md:text-left">
               Yapay zeka destekli, modern kelime öğrenme platformu.
             </p>
@@ -233,8 +231,8 @@ export default function Home() {
 
 function FeatureCard({ icon, title, desc, color }: { icon: React.ReactNode, title: string, desc: string, color: string }) {
   return (
-    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 group">
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg ${color} group-hover:scale-110 transition duration-300`}>
+    <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 group">
+      <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 shadow-lg ${color} group-hover:scale-110 transition duration-300`}>
         {icon}
       </div>
       <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>

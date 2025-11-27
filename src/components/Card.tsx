@@ -10,7 +10,7 @@ interface CardProps {
 
 const Card = ({ children, className = '', title, icon, headerAction }: CardProps) => {
     return (
-        <div className={`bg-white p-6 sm:p-8 rounded-[2rem] shadow-sm border border-slate-100 ${className}`}>
+        <div className={`bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100 ${className}`}>
             {(title || icon) && (
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-50">
                     <div className="flex items-center gap-3">

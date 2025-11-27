@@ -156,7 +156,7 @@ export default function Learn() {
     // --- RENDER: SONUÇ EKRANI (SESSION FINISHED) ---
     if (isSessionFinished) return (
         <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-slate-50 text-center font-sans pt-16">
-            <div className="bg-white p-8 sm:p-12 rounded-[2rem] shadow-xl border border-slate-100 w-full max-w-md animate-scale-up">
+            <div className="bg-white p-8 sm:p-12 rounded-xl shadow-xl border border-slate-100 w-full max-w-md animate-scale-up">
                 <div className="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-200">
                     <Trophy size={40} className="fill-yellow-600" />
                 </div>
@@ -164,11 +164,11 @@ export default function Learn() {
                 <p className="text-slate-500 mb-8 font-medium">Bu oturumu başarıyla tamamladın.</p>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
                         <div className="text-3xl font-black text-green-600">{sessionStats.correct}</div>
                         <div className="text-xs font-bold text-green-500 uppercase tracking-wide">Doğru</div>
                     </div>
-                    <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                    <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
                         <div className="text-3xl font-black text-indigo-600">+{sessionStats.earnedXp}</div>
                         <div className="text-xs font-bold text-indigo-500 uppercase tracking-wide">XP Kazanıldı</div>
                     </div>
@@ -227,7 +227,7 @@ export default function Learn() {
 
                     {/* Görsel Desteği (Varsa) */}
                     {currentWord.image_url && !showFullResult && mode !== 'flip' && (
-                        <div className="mb-6 w-40 h-40 relative rounded-3xl overflow-hidden shadow-lg border-4 border-white ring-1 ring-slate-100">
+                        <div className="mb-6 w-40 h-40 relative rounded-xl overflow-hidden shadow-lg border-4 border-white ring-1 ring-slate-100">
                             <img src={currentWord.image_url} alt="Word visual" className="object-cover w-full h-full" />
                         </div>
                     )}
@@ -257,7 +257,7 @@ export default function Learn() {
                                     ref={inputRef}
                                     value={userInput}
                                     onChange={(e) => setUserInput(e.target.value)}
-                                    className="w-full text-center text-2xl font-bold p-5 bg-white rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm text-slate-800 placeholder:text-slate-300"
+                                    className="w-full text-center text-2xl font-bold p-5 bg-white rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm text-slate-800 placeholder:text-slate-300"
                                     placeholder="Buraya yazın..."
                                     autoComplete="off"
                                     autoCorrect="off"
@@ -289,7 +289,7 @@ export default function Learn() {
                                 <button
                                     key={opt.id}
                                     onClick={() => handleAnswer(opt.id === currentWord.id)}
-                                    className="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-700 text-lg hover:border-indigo-500 hover:ring-4 hover:ring-indigo-500/10 active:scale-[0.98] transition-all flex items-center gap-4 group text-left shadow-sm"
+                                    className="w-full p-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 text-lg hover:border-indigo-500 hover:ring-4 hover:ring-indigo-500/10 active:scale-[0.98] transition-all flex items-center gap-4 group text-left shadow-sm"
                                 >
                                     <span className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 border border-slate-200 flex items-center justify-center text-sm font-bold group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors shrink-0">
                                         {idx + 1}
@@ -302,16 +302,16 @@ export default function Learn() {
 
                     {/* --- MOD: KART (Flip) --- */}
                     {mode === 'flip' && !showFullResult && (
-                        <div className="w-full h-80 perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
+                        <div className="w-full min-h-[300px] perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
                             <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
                                 {/* Ön Yüz: Türkçe */}
-                                <div className="absolute w-full h-full bg-white rounded-3xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow">
+                                <div className="absolute w-full h-full bg-white rounded-xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow">
                                     <div className="text-3xl font-bold text-slate-800 mb-2">{currentWord.meaning}</div>
                                     <div className="text-sm font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">Cevabı Gör</div>
                                 </div>
 
                                 {/* Arka Yüz: İngilizce */}
-                                <div className="absolute w-full h-full bg-slate-900 rounded-3xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-slate-800 shadow-xl p-6">
+                                <div className="absolute w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-slate-800 shadow-xl p-6">
                                     <div className="text-3xl font-bold text-white mb-2">{currentWord.word}</div>
                                     <p className="text-slate-400 text-sm italic text-center mb-6">"{currentWord.example_en}"</p>
 
@@ -329,8 +329,8 @@ export default function Learn() {
 
             {/* --- SONUÇ OVERLAY (TAM EKRAN) --- */}
             {showFullResult && (
-                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-50 animate-fade-in p-6">
-                    <div className={`p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in p-6">
+                    <div className={`p-8 rounded-xl shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
 
                         {/* Arka Plan Efekti */}
                         <div className={`absolute top-0 left-0 w-full h-2 ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -346,7 +346,7 @@ export default function Learn() {
                         </h3>
 
                         {/* Doğru Cevap Kartı */}
-                        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 mb-6 relative">
+                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-6 relative">
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-3 py-0.5 rounded-full text-[10px] font-bold text-slate-400 border border-slate-100 uppercase tracking-wide shadow-sm">
                                 {status === 'success' ? 'Kelime' : 'Doğru Cevap'}
                             </div>

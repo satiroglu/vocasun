@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { useProfile } from '@/hooks/useProfile';
+import Logo from '@/components/Logo';
 
 export default function Navbar() {
     const { user } = useUser(); // Optimize edilmiş auth hook
@@ -56,17 +57,13 @@ export default function Navbar() {
                 <div className="flex justify-between items-center h-full">
 
                     {/* --- SOL: LOGO --- */}
-                    {/* z-index ekledik ki mobil menü açılınca üstte kalsın */}
-                    <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group shrink-0 z-50">
-                        <div className="relative">
-                            <Sun className="w-7 h-7 text-indigo-600 fill-indigo-600/10 animate-[spin_12s_linear_infinite]" />
-                            <div className="absolute inset-0 bg-indigo-400/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        </div>
-                        {/* DÜZELTME: hidden class'ı kaldırıldı, artık mobilde de görünüyor */}
-                        <span className="font-bold text-xl tracking-tight text-indigo-600">
-                            Vocasun
-                        </span>
-                    </Link>
+                    <div className="z-50 shrink-0">
+                        <Logo
+                            href={user ? "/dashboard" : "/"}
+                            className="!text-xl sm:!text-2xl"
+                            iconSize={28}
+                        />
+                    </div>
 
                     {/* --- ORTA: DESKTOP MENÜ --- */}
                     {user && (
@@ -95,8 +92,8 @@ export default function Navbar() {
                     <div className="hidden md:flex items-center gap-4 shrink-0">
                         {user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                                <Link 
-                                    href={profile?.username ? `/profile/${profile.username}` : '/dashboard'} 
+                                <Link
+                                    href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
                                     className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
                                 >
                                     <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center border border-indigo-100 group-hover:border-indigo-300 transition-colors">
@@ -138,7 +135,6 @@ export default function Navbar() {
                             className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition"
                             aria-label="Menüyü Aç/Kapat"
                         >
-                            {/* DÜZELTME: X ikonu artık görünecek çünkü z-index yüksek */}
                             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
                     </div>
@@ -148,11 +144,6 @@ export default function Navbar() {
             {/* --- MOBİL DROPDOWN MENÜ --- */}
             {isMenuOpen && (
                 <>
-                    {/* 
-             DÜZELTME: Backdrop artık 'top-16' yani navbar'ın altından başlıyor.
-             Böylece üstteki Logo ve X butonuna tıklanabiliyor.
-             Ayrıca tüm ekranı (h-screen) kaplıyor.
-          */}
                     <div
                         className="fixed top-16 left-0 w-full h-[calc(100vh-4rem)] bg-slate-900/20 backdrop-blur-sm z-40 md:hidden"
                         onClick={() => setIsMenuOpen(false)}
@@ -163,7 +154,7 @@ export default function Navbar() {
                         <div className="px-4 pt-4 pb-6 space-y-2 max-h-[80vh] overflow-y-auto">
                             {user ? (
                                 <>
-                                    <Link 
+                                    <Link
                                         href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-4 hover:bg-slate-100 transition-colors active:scale-[0.98]"

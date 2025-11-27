@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { ArrowLeft, Sun, Mail } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import Logo from '@/components/Logo';
 
 export default function ForgotPassword() {
     const [loading, setLoading] = useState(false);
@@ -32,10 +33,7 @@ export default function ForgotPassword() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 flex flex-col items-center justify-center p-4 sm:p-6">
 
-            <Link href="/" className="mb-6 sm:mb-8 flex items-center gap-2.5 text-indigo-600 font-bold text-2xl sm:text-3xl hover:opacity-80 transition group">
-                <Sun className="w-8 h-8 sm:w-10 sm:h-10 group-hover:rotate-180 transition-transform duration-700" />
-                <span>Vocasun</span>
-            </Link>
+            <Logo className="mb-6 sm:mb-8" />
 
             <div className="bg-white w-full max-w-md p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl shadow-indigo-100/50 border border-slate-200/50">
                 <div className="flex items-center mb-6 sm:mb-8">

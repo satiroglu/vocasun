@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
     ArrowLeft, Volume2, Check, X, PenTool, LayoutGrid,
-    BookOpen, Sparkles, SkipForward, Trophy, RotateCcw
+    BookOpen, Sparkles, SkipForward, Trophy, RotateCcw, EyeOff, Clock
 } from 'lucide-react';
 import { VocabularyItem } from '@/types';
 import Button from '@/components/Button';
@@ -13,14 +13,6 @@ import { useLearnSession, useChoiceOptions, useSaveProgress } from '@/hooks/useL
 
 type Mode = 'write' | 'choice' | 'flip';
 type FeedbackStatus = 'idle' | 'success' | 'error';
-
-interface ProgressMap {
-    [key: number]: {
-        interval: number;
-        ease_factor: number;
-        repetitions: number;
-    }
-}
 
 export default function Learn() {
     // Hooks
@@ -43,6 +35,7 @@ export default function Learn() {
     const queue = sessionData?.words || [];
     const progressMap = sessionData?.progressMap || {};
     const currentWord = queue[currentIndex];
+    const currentProgress = currentWord ? progressMap[currentWord.id] : undefined;
 
     // Şıkları çek (choice modu için)
     const { data: choiceOptions = [] } = useChoiceOptions(
@@ -99,14 +92,36 @@ export default function Learn() {
             setSessionStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
         }
 
-        // İlerlemeyi kaydet (optimize edilmiş mutation)
-        const currentP = progressMap[currentWord.id] || { interval: 0, ease_factor: 2.5, repetitions: 0 };
+        // İlerlemeyi kaydet
+        const currentP = currentProgress || { interval: 0, ease_factor: 2.5, repetitions: 0 };
         await saveProgressMutation.mutateAsync({
             userId: user.id,
             vocabId: currentWord.id,
             isCorrect,
             currentProgress: currentP
         });
+    };
+
+    // "Bunu Biliyorum" (Mastery) İşleyicisi
+    const handleAlreadyKnow = async () => {
+        if (isProcessing || !user || !currentWord) return;
+        setIsProcessing(true);
+
+        // Kullanıcıya puan ver ve doğru kabul et ama sonucu göstermeden geç
+        setSessionStats(prev => ({ ...prev, correct: prev.correct + 1, earnedXp: prev.earnedXp + 10 }));
+
+        // Veritabanına kaydet (Mastered olarak)
+        const currentP = currentProgress || { interval: 0, ease_factor: 2.5, repetitions: 0 };
+        await saveProgressMutation.mutateAsync({
+            userId: user.id,
+            vocabId: currentWord.id,
+            isCorrect: true, // Teknik olarak doğru bildi
+            currentProgress: currentP,
+            isMasteredManually: true
+        });
+
+        // Hızlıca sonraki soruya geç
+        nextQuestion();
     };
 
     const nextQuestion = () => {
@@ -188,14 +203,55 @@ export default function Learn() {
 
     if (!currentWord) return null;
 
+    // Badge Logic
+    const isNew = currentProgress?.is_new ?? true;
+
+    // Renk Helper
+    const getLevelColor = (level: string | undefined) => {
+        if (!level) return 'bg-slate-100 text-slate-600 border-slate-200';
+        const l = level.toLowerCase();
+        if (l.startsWith('a')) return 'bg-green-100 text-green-700 border-green-200';
+        if (l.startsWith('b')) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        if (l.startsWith('c')) return 'bg-red-100 text-red-700 border-red-200';
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+    };
+
+    // Badge Component (Reusable)
+    const WordBadges = ({ small = false }: { small?: boolean }) => (
+        <div className={`flex items-center justify-center ${small ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
+            {/* Durum Etiketi */}
+            <div className={`inline-flex items-center gap-1.5 ${small ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded-full font-bold uppercase tracking-wide border ${isNew
+                ? 'bg-blue-100 text-blue-700 border-blue-200'
+                : 'bg-orange-100 text-orange-700 border-orange-200'
+                }`}>
+                {isNew ? <Sparkles size={small ? 10 : 12} /> : <Clock size={small ? 10 : 12} />}
+                {isNew ? 'YENİ' : 'TEKRAR'}
+            </div>
+
+            {/* Seviye Etiketi */}
+            {currentWord.level && (
+                <div className={`inline-flex items-center gap-1.5 ${small ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded-full border font-bold uppercase tracking-wide ${getLevelColor(currentWord.level)}`}>
+                    {currentWord.level}
+                </div>
+            )}
+
+            {/* Tür Etiketi */}
+            {currentWord.type && (
+                <div className={`inline-flex items-center gap-1.5 ${small ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold uppercase tracking-wide`}>
+                    {currentWord.type}
+                </div>
+            )}
+        </div>
+    );
+
     // --- RENDER: AKTİF SORU EKRANI ---
     return (
-        // 100dvh: Mobil tarayıcılar için tam ekran yüksekliği
-        // pt-16: Navbar için alan bırak
-        <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-16">
+        // pt-0: Navbar gizli olduğu için padding yok
+        <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-0">
 
             {/* --- HEADER: Progress & Tools --- */}
-            <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16 fixed top-16 left-0 right-0">
+            {/* top-0: Navbar gizli olduğu için en üstte */}
+            <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16 fixed top-0 left-0 right-0">
                 <Link href="/dashboard" className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><ArrowLeft size={24} /></Link>
 
                 {/* Progress Bar */}
@@ -220,10 +276,21 @@ export default function Learn() {
             </div>
 
             {/* --- MAIN CONTENT AREA --- */}
-            {/* mt-16: İkinci header için alan bırak */}
+            {/* mt-16: Header yüksekliği kadar boşluk */}
             <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-16">
 
-                <div className="flex-1 flex flex-col items-center justify-center p-6 w-full min-h-full">
+                <div className="flex-1 flex flex-col items-center justify-center p-6 w-full min-h-full relative">
+
+                    {/* "Bunu Biliyorum" Butonu (Sağ Üst) */}
+                    {!showFullResult && (
+                        <button
+                            onClick={handleAlreadyKnow}
+                            className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm active:scale-95 group z-20"
+                        >
+                            <EyeOff size={14} className="group-hover:text-indigo-600" />
+                            <span className="text-xs font-bold">Biliyorum</span>
+                        </button>
+                    )}
 
                     {/* Görsel Desteği (Varsa) */}
                     {currentWord.image_url && !showFullResult && mode !== 'flip' && (
@@ -235,13 +302,16 @@ export default function Learn() {
                     {/* Kelime Kartı (Kart Modu Hariç) */}
                     {mode !== 'flip' && (
                         <div className="text-center mb-8 w-full animate-fade-in">
-                            <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-3 break-words leading-tight">
+
+                            <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-4 break-words leading-tight">
                                 {currentWord.meaning}
                             </h2>
-                            {/* Seviye Badge */}
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold uppercase tracking-wide mb-1">
-                                <Sparkles size={12} className="fill-indigo-600" /> {currentWord.level || 'Genel'}
+
+                            {/* Durum ve Metadata Etiketleri (Kelime Altında) */}
+                            <div className="mb-2">
+                                <WordBadges />
                             </div>
+
                             <p className="text-slate-400 font-medium text-sm mt-2">İngilizcesi nedir?</p>
                         </div>
                     )}
@@ -347,10 +417,12 @@ export default function Learn() {
 
                         {/* Doğru Cevap Kartı */}
                         <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-6 relative">
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-3 py-0.5 rounded-full text-[10px] font-bold text-slate-400 border border-slate-100 uppercase tracking-wide shadow-sm">
-                                {status === 'success' ? 'Kelime' : 'Doğru Cevap'}
+                            {/* Eski Label yerine Badge'ler */}
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                <WordBadges small />
                             </div>
-                            <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2">
+
+                            <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4">
                                 {currentWord.word}
                                 <button onClick={() => playAudio()} className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-110 transition">
                                     <Volume2 size={20} />

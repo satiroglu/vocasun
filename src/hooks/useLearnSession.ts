@@ -9,6 +9,7 @@ interface ProgressMap {
         interval: number;
         ease_factor: number;
         repetitions: number;
+        is_new: boolean; // YENİ: Durum etiketi için
     }
 }
 
@@ -19,11 +20,20 @@ interface SessionData {
 
 // Öğrenme oturumu verilerini çeken optimize edilmiş fonksiyon
 async function fetchLearnSession(userId: string): Promise<SessionData> {
-    // 1. Kelimeleri çek (rastgele 10 kelime)
+    // 0. Kullanıcının günlük hedefini çek
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('daily_goal')
+        .eq('id', userId)
+        .single();
+
+    const limit = profile?.daily_goal || 10;
+
+    // 1. Kelimeleri çek (rastgele limit kadar kelime)
     const { data: words } = await supabase
         .from('vocabulary')
         .select('*')
-        .limit(10);
+        .limit(limit);
 
     if (!words || words.length === 0) {
         return { words: [], progressMap: {} };
@@ -35,17 +45,30 @@ async function fetchLearnSession(userId: string): Promise<SessionData> {
     const wordIds = shuffledWords.map(w => w.id);
     const { data: progressData } = await supabase
         .from('user_progress')
-        .select('vocab_id, interval, ease_factor')
+        .select('vocab_id, interval, ease_factor, repetitions')
         .eq('user_id', userId)
         .in('vocab_id', wordIds);
 
     // Progress Map oluştur
     const pMap: ProgressMap = {};
+
+    // Önce tüm kelimeler için varsayılan "Yeni" kaydı oluştur
+    shuffledWords.forEach(w => {
+        pMap[w.id] = {
+            interval: 0,
+            ease_factor: 2.5,
+            repetitions: 0,
+            is_new: true
+        };
+    });
+
+    // Varsa veritabanından gelen verilerle güncelle
     progressData?.forEach((p: any) => {
         pMap[p.vocab_id] = {
             interval: p.interval,
             ease_factor: p.ease_factor,
-            repetitions: 0
+            repetitions: p.repetitions,
+            is_new: false // Veritabanında varsa yeni değildir
         };
     });
 
@@ -70,7 +93,7 @@ export function useLearnSession(userId: string | undefined) {
         queryFn: () => fetchLearnSession(userId!),
         enabled: !!userId,
         staleTime: 0, // Her seferinde yeni oturum
-        gcTime: 0, // Cache'de tutma (yeni session istenince eski silinsin)
+        gcTime: 0, // Cache'de tutma
     });
 }
 
@@ -80,7 +103,7 @@ export function useChoiceOptions(wordId: number | undefined) {
         queryKey: ['choice-options', wordId],
         queryFn: () => fetchChoiceOptions(wordId!),
         enabled: !!wordId,
-        staleTime: 60 * 1000, // 1 dakika - aynı kelime için tekrar çekmesin
+        staleTime: 60 * 1000,
     });
 }
 
@@ -89,34 +112,46 @@ export function useSaveProgress() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ 
-            userId, 
-            vocabId, 
-            isCorrect, 
-            currentProgress 
-        }: { 
-            userId: string; 
-            vocabId: number; 
-            isCorrect: boolean; 
-            currentProgress: { interval: number; ease_factor: number; repetitions: number } 
+        mutationFn: async ({
+            userId,
+            vocabId,
+            isCorrect,
+            currentProgress,
+            isMasteredManually = false // YENİ: "Biliyorum" butonu için
+        }: {
+            userId: string;
+            vocabId: number;
+            isCorrect: boolean;
+            currentProgress: { interval: number; ease_factor: number; repetitions: number };
+            isMasteredManually?: boolean;
         }) => {
             let newInterval = currentProgress.interval;
             let newEaseFactor = currentProgress.ease_factor;
+            let newRepetitions = currentProgress.repetitions;
+            let isMastered = false;
 
-            // Basit SRS Mantığı
-            if (isCorrect) {
-                if (newInterval === 0) newInterval = 1;
-                else if (newInterval === 1) newInterval = 3;
+            if (isMasteredManually) {
+                // "Biliyorum" butonu mantığı
+                isMastered = true;
+                newInterval = 100; // Uzun süre sorma
+                newEaseFactor = 3.0; // Sabit ease factor
+            } else if (isCorrect) {
+                // Doğru cevap mantığı (SM-2 benzeri)
+                if (newRepetitions === 0) newInterval = 1;
+                else if (newRepetitions === 1) newInterval = 6;
                 else newInterval = Math.round(newInterval * newEaseFactor);
+
+                newRepetitions += 1;
                 newEaseFactor = newEaseFactor + 0.1;
             } else {
-                newInterval = 0;
+                // Yanlış cevap mantığı
+                newRepetitions = 0;
+                newInterval = 1;
                 newEaseFactor = Math.max(1.3, newEaseFactor - 0.2);
             }
 
             const nextReviewDate = new Date();
-            if (newInterval === 0) nextReviewDate.setMinutes(nextReviewDate.getMinutes() + 1);
-            else nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
+            nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
 
             // Veritabanına Kaydet
             await supabase
@@ -124,24 +159,25 @@ export function useSaveProgress() {
                 .upsert({
                     user_id: userId,
                     vocab_id: vocabId,
-                    is_mastered: newInterval > 20,
+                    is_mastered: isMastered,
                     updated_at: new Date().toISOString(),
                     next_review: nextReviewDate.toISOString(),
                     interval: newInterval,
-                    ease_factor: newEaseFactor
+                    ease_factor: newEaseFactor,
+                    repetitions: newRepetitions
                 }, { onConflict: 'user_id, vocab_id' });
 
-            // XP Artırma
-            if (isCorrect) {
+            // XP Artırma (Hem doğru cevapta hem de "Biliyorum" dendiğinde puan verilsin mi? 
+            // İstek: "Kullanıcıya puan kazandır")
+            if (isCorrect || isMasteredManually) {
                 await supabase.rpc('increment_score', { row_id: userId });
             }
         },
         onSuccess: () => {
-            // Dashboard verilerini yenile (ilerleme değiştiği için)
+            // Dashboard verilerini yenile
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
             queryClient.invalidateQueries({ queryKey: ['history'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
         },
     });
 }
-

@@ -35,29 +35,29 @@ export default function Learn() {
 
     // Local Queue State for Retry Logic
     const [localQueue, setLocalQueue] = useState<VocabularyItem[]>([]);
+    // Track initial session length for progress bar (Daily Goal)
+    const [initialSessionLength, setInitialSessionLength] = useState(0);
 
     // Initialize localQueue when sessionData is loaded
     useEffect(() => {
         if (sessionData?.words) {
             setLocalQueue(sessionData.words);
+            setInitialSessionLength(sessionData.words.length);
         }
     }, [sessionData]);
 
     const progressMap = sessionData?.progressMap || {};
     const currentWord = localQueue[currentIndex];
     const currentProgress = currentWord ? progressMap[currentWord.id] : undefined;
+    const { data: choiceOptions = [], isLoading: isOptionsLoading } = useChoiceOptions(currentWord?.id);
 
-    // Şıkları çek (choice modu için)
-    const { data: choiceOptions = [] } = useChoiceOptions(
-        mode === 'choice' && currentWord ? currentWord.id : undefined
-    );
-
-    // Yeni oturum başlat
+    // Yeni Oturum Başlatma
     const startNewSession = () => {
-        setCurrentIndex(0);
-        setSessionStats({ correct: 0, wrong: 0, earnedXp: 0 });
         setIsSessionFinished(false);
-        setLocalQueue([]); // Clear queue to trigger re-init
+        setSessionStats({ correct: 0, wrong: 0, earnedXp: 0 });
+        setCurrentIndex(0);
+        setLocalQueue([]); // Kuyruğu temizle
+        setInitialSessionLength(0);
         refetchSession();
     };
 
@@ -120,8 +120,8 @@ export default function Learn() {
             playAudio();
             setSessionStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
 
-            // RETRY LOGIC: Append wrong answer to the end of the queue
-            setLocalQueue(prev => [...prev, currentWord]);
+            // RETRY LOGIC REMOVED: Linear progression requested
+            // setLocalQueue(prev => [...prev, currentWord]);
         }
 
         // İlerlemeyi kaydet
@@ -161,7 +161,14 @@ export default function Learn() {
         if (currentIndex < localQueue.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            setIsSessionFinished(true);
+            // Last word answered.
+            // Visually update to 100% (by incrementing index one last time)
+            setCurrentIndex(currentIndex + 1);
+
+            // Wait for delay then show finish screen
+            setTimeout(() => {
+                setIsSessionFinished(true);
+            }, 1000);
         }
     };
 
@@ -234,7 +241,43 @@ export default function Learn() {
         </div>
     );
 
-    if (!currentWord) return null;
+    if (!currentWord) {
+        // If we are in the "completion delay" state (index == length), show the layout with full progress
+        if (currentIndex === initialSessionLength && !isSessionFinished) {
+            return (
+                <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-0">
+                    {/* --- HEADER --- */}
+                    <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16 fixed top-0 left-0 right-0">
+                        <Link href="/dashboard" className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><ArrowLeft size={24} /></Link>
+                        <div className="flex gap-1 bg-slate-100 p-1 rounded-lg opacity-50 pointer-events-none">
+                            <button className="p-2 rounded-md text-slate-400"><PenTool size={22} /></button>
+                            <button className="p-2 rounded-md text-slate-400"><LayoutGrid size={22} /></button>
+                            <button className="p-2 rounded-md text-slate-400"><BookOpen size={22} /></button>
+                        </div>
+                    </div>
+
+                    {/* --- TOP BAR: Progress (FULL) --- */}
+                    <div className="fixed top-16 left-0 right-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
+                        <div className="max-w-lg mx-auto w-full">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
+                                <span>İlerleme</span>
+                                <span>{initialSessionLength} / {initialSessionLength}</span>
+                            </div>
+                            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-full" style={{ width: '100%' }}></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- MAIN CONTENT AREA (Empty or Loading) --- */}
+                    <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-32 mb-4 items-center justify-center">
+                        <div className="animate-pulse text-indigo-600 font-bold">Tamamlanıyor...</div>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    }
 
     // Badge Logic
     const isNew = currentProgress?.is_new ?? true;
@@ -277,40 +320,51 @@ export default function Learn() {
         </div>
     );
 
+    // Calculate Progress
+    // Use currentIndex for progress (starts at 0), capped at initialSessionLength
+    // This ensures progress starts at 0% and 0/10
+    const progressPercentage = initialSessionLength > 0
+        ? Math.min(100, (currentIndex / initialSessionLength) * 100)
+        : 0;
+
     // --- RENDER: AKTİF SORU EKRANI ---
     return (
         // pt-0: Navbar gizli olduğu için padding yok
         <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-0">
 
-            {/* --- HEADER: Progress & Tools --- */}
+            {/* --- HEADER: Back & Mode Switcher --- */}
             {/* top-0: Navbar gizli olduğu için en üstte */}
             <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16 fixed top-0 left-0 right-0">
                 <Link href="/dashboard" className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><ArrowLeft size={24} /></Link>
 
-                {/* Progress Bar */}
-                <div className="flex-1 mx-4 max-w-xs">
+                {/* Mod Değiştirici */}
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                    <button onClick={() => setMode('write')} className={`p-2 rounded-md transition ${mode === 'write' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><PenTool size={22} /></button>
+                    <button onClick={() => setMode('choice')} className={`p-2 rounded-md transition ${mode === 'choice' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={22} /></button>
+                    <button onClick={() => setMode('flip')} className={`p-2 rounded-md transition ${mode === 'flip' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><BookOpen size={22} /></button>
+                </div>
+            </div>
+
+            {/* --- TOP BAR: Progress --- */}
+            {/* top-16: Header'ın hemen altında */}
+            <div className="fixed top-16 left-0 right-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
+                <div className="max-w-lg mx-auto w-full">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
+                        <span>İlerleme</span>
+                        <span>{currentIndex} / {initialSessionLength}</span>
+                    </div>
                     <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-full"
-                            style={{ width: `${((currentIndex) / localQueue.length) * 100}%` }}
+                            style={{ width: `${progressPercentage}%` }}
                         ></div>
                     </div>
-                    <div className="text-[10px] text-right text-slate-400 font-bold mt-1">
-                        Soru {currentIndex + 1} / {localQueue.length}
-                    </div>
-                </div>
-
-                {/* Mod Değiştirici */}
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-                    <button onClick={() => setMode('write')} className={`p-2 rounded-md transition ${mode === 'write' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><PenTool size={18} /></button>
-                    <button onClick={() => setMode('choice')} className={`p-2 rounded-md transition ${mode === 'choice' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={18} /></button>
-                    <button onClick={() => setMode('flip')} className={`p-2 rounded-md transition ${mode === 'flip' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><BookOpen size={18} /></button>
                 </div>
             </div>
 
             {/* --- MAIN CONTENT AREA --- */}
-            {/* mt-16: Header yüksekliği kadar boşluk */}
-            <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-16">
+            {/* mt-32: Header (16) + Progress Bar (16 approx) kadar boşluk */}
+            <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-32 mb-4">
 
                 <div className="flex-1 flex flex-col items-center justify-center p-6 w-full min-h-full relative">
 
@@ -388,47 +442,54 @@ export default function Learn() {
                     {/* --- MOD: SEÇME (Choice) --- */}
                     {mode === 'choice' && !showFullResult && (
                         <div className="grid grid-cols-1 gap-3 w-full animate-fade-in-up">
-                            {options.map((opt, idx) => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => handleAnswer(opt.id === currentWord.id)}
-                                    className="w-full p-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 text-lg hover:border-indigo-500 hover:ring-4 hover:ring-indigo-500/10 active:scale-[0.98] transition-all flex items-center gap-4 group text-left shadow-sm"
-                                >
-                                    <span className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 border border-slate-200 flex items-center justify-center text-sm font-bold group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors shrink-0">
-                                        {idx + 1}
-                                    </span>
-                                    <span className="truncate">{opt.word}</span>
-                                </button>
-                            ))}
+                            {isOptionsLoading || options.length < 2 ? (
+                                // SKELETON LOADING STATE
+                                [1, 2, 3, 4].map((i) => (
+                                    <div key={i} className="w-full p-4 bg-white border-2 border-slate-100 rounded-xl flex items-center gap-4 animate-pulse">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-200 shrink-0"></div>
+                                        <div className="h-6 bg-slate-200 rounded w-3/4"></div>
+                                    </div>
+                                ))
+                            ) : (
+                                options.map((opt, idx) => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => handleAnswer(opt.id === currentWord.id)}
+                                        className="w-full p-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 text-lg hover:border-indigo-500 hover:ring-4 hover:ring-indigo-500/10 active:scale-[0.98] transition-all flex items-center gap-4 group text-left shadow-sm"
+                                    >
+                                        <span className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 border border-slate-200 flex items-center justify-center text-sm font-bold group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors shrink-0">
+                                            {idx + 1}
+                                        </span>
+                                        <span className="truncate">{opt.word}</span>
+                                    </button>
+                                ))
+                            )}
                         </div>
-                    )
-                    }
+                    )}
 
                     {/* --- MOD: KART (Flip) --- */}
-                    {
-                        mode === 'flip' && !showFullResult && (
-                            <div className="w-full min-h-[300px] perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
-                                <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
-                                    {/* Ön Yüz: Türkçe */}
-                                    <div className="absolute w-full h-full bg-white rounded-xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow">
-                                        <div className="text-3xl font-bold text-slate-800 mb-2">{currentWord.meaning}</div>
-                                        <div className="text-sm font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">Cevabı Gör</div>
-                                    </div>
+                    {mode === 'flip' && !showFullResult && (
+                        <div className="w-full min-h-[300px] perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
+                            <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
+                                {/* Ön Yüz: Türkçe */}
+                                <div className="absolute w-full h-full bg-white rounded-xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow">
+                                    <div className="text-3xl font-bold text-slate-800 mb-2">{currentWord.meaning}</div>
+                                    <div className="text-sm font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">Cevabı Gör</div>
+                                </div>
 
-                                    {/* Arka Yüz: İngilizce */}
-                                    <div className="absolute w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-slate-800 shadow-xl p-6">
-                                        <div className="text-3xl font-bold text-white mb-2">{currentWord.word}</div>
-                                        <p className="text-slate-400 text-sm italic text-center mb-6">"{currentWord.example_en}"</p>
+                                {/* Arka Yüz: İngilizce */}
+                                <div className="absolute w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-slate-800 shadow-xl p-6">
+                                    <div className="text-3xl font-bold text-white mb-2">{currentWord.word}</div>
+                                    <p className="text-slate-400 text-sm italic text-center mb-6">"{currentWord.example_en}"</p>
 
-                                        <div className="flex gap-3 w-full" onClick={(e) => e.stopPropagation()}>
-                                            <button onClick={() => handleAnswer(false)} className="flex-1 py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-xl font-bold hover:bg-red-500 hover:text-white transition">Bilmiyorum</button>
-                                            <button onClick={() => handleAnswer(true)} className="flex-1 py-3 bg-green-500/20 border border-green-500/50 text-green-400 rounded-xl font-bold hover:bg-green-500 hover:text-white transition">Biliyorum</button>
-                                        </div>
+                                    <div className="flex gap-3 w-full" onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => handleAnswer(false)} className="flex-1 py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-xl font-bold hover:bg-red-500 hover:text-white transition">Bilmiyorum</button>
+                                        <button onClick={() => handleAnswer(true)} className="flex-1 py-3 bg-green-500/20 border border-green-500/50 text-green-400 rounded-xl font-bold hover:bg-green-500 hover:text-white transition">Biliyorum</button>
                                     </div>
                                 </div>
                             </div>
-                        )
-                    }
+                        </div>
+                    )}
 
                 </div >
             </div >

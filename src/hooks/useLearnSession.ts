@@ -29,11 +29,9 @@ async function fetchLearnSession(userId: string): Promise<SessionData> {
 
     const limit = profile?.daily_goal || 10;
 
-    // 1. Rastgele kelimeleri veritabanından çek (RPC ile optimize edildi)
-    // Eski yöntem: Tüm ID'leri çek -> Karıştır -> Seç (Çok yavaştı)
-    // Yeni yöntem: Veritabanında karıştır ve sadece gerekli sayıyı çek
+    // 1. Akıllı öğrenme oturumu (Review + New Words)
     const { data: words, error } = await supabase
-        .rpc('get_random_words', { limit_count: limit });
+        .rpc('get_learning_session', { p_user_id: userId, p_limit: limit });
 
     if (error) {
         console.error('Error fetching random words:', error);
@@ -123,66 +121,27 @@ export function useSaveProgress() {
             userId,
             vocabId,
             isCorrect,
-            currentProgress,
-            isMasteredManually = false // YENİ: "Biliyorum" butonu için
+            isMasteredManually = false
         }: {
             userId: string;
             vocabId: number;
             isCorrect: boolean;
-            currentProgress: { interval: number; ease_factor: number; repetitions: number };
             isMasteredManually?: boolean;
         }) => {
-            let newInterval = currentProgress.interval;
-            let newEaseFactor = currentProgress.ease_factor;
-            let newRepetitions = currentProgress.repetitions;
-            let isMastered = false;
-
-            if (isMasteredManually) {
-                // "Biliyorum" butonu mantığı
-                isMastered = true;
-                newInterval = 100; // Uzun süre sorma
-                newEaseFactor = 3.0; // Sabit ease factor
-            } else if (isCorrect) {
-                // Doğru cevap mantığı (SM-2 benzeri)
-                if (newRepetitions === 0) newInterval = 1;
-                else if (newRepetitions === 1) newInterval = 6;
-                else newInterval = Math.round(newInterval * newEaseFactor);
-
-                newRepetitions += 1;
-                newEaseFactor = newEaseFactor + 0.1;
-            } else {
-                // Yanlış cevap mantığı
-                newRepetitions = 0;
-                newInterval = 1;
-                newEaseFactor = Math.max(1.3, newEaseFactor - 0.2);
-            }
-
-            const nextReviewDate = new Date();
-            nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
-
-            // Veritabanına Kaydet (RPC ile)
-            // console.log('Saving progress via RPC...', { userId, vocabId, isMastered, updated_at: new Date().toISOString() });
-
+            // Veritabanına Kaydet (RPC ile - SRS mantığı artık SQL tarafında)
             const { error: rpcError } = await supabase.rpc('save_user_progress', {
                 p_user_id: userId,
                 p_vocab_id: vocabId,
-                p_is_mastered: isMastered,
-                p_updated_at: new Date().toISOString(),
-                p_next_review: nextReviewDate.toISOString(),
-                p_interval: newInterval,
-                p_ease_factor: newEaseFactor,
-                p_repetitions: newRepetitions
+                p_is_correct: isCorrect,
+                p_is_mastered: isMasteredManually
             });
 
-            // if (rpcError) {
-            //     console.error('Error saving progress (RPC):', rpcError);
-            //     throw new Error(rpcError.message);
-            // } else {
-            //     console.log('Progress saved successfully (RPC)');
-            // }
+            if (rpcError) {
+                console.error('Error saving progress (RPC):', rpcError);
+                throw new Error(rpcError.message);
+            }
 
-            // XP Artırma (Hem doğru cevapta hem de "Biliyorum" dendiğinde puan verilsin mi? 
-            // İstek: "Kullanıcıya puan kazandır")
+            // XP Artırma
             if (isCorrect || isMasteredManually) {
                 await supabase.rpc('increment_score', { row_id: userId });
             }

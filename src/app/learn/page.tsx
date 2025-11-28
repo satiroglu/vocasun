@@ -125,12 +125,10 @@ export default function Learn() {
         }
 
         // İlerlemeyi kaydet
-        const currentP = currentProgress || { interval: 0, ease_factor: 2.5, repetitions: 0 };
         await saveProgressMutation.mutateAsync({
             userId: user.id,
             vocabId: currentWord.id,
-            isCorrect,
-            currentProgress: currentP
+            isCorrect
         });
     };
 
@@ -143,12 +141,10 @@ export default function Learn() {
         setSessionStats(prev => ({ ...prev, correct: prev.correct + 1, earnedXp: prev.earnedXp + 10 }));
 
         // Veritabanına kaydet (Mastered olarak)
-        const currentP = currentProgress || { interval: 0, ease_factor: 2.5, repetitions: 0 };
         await saveProgressMutation.mutateAsync({
             userId: user.id,
             vocabId: currentWord.id,
             isCorrect: true, // Teknik olarak doğru bildi
-            currentProgress: currentP,
             isMasteredManually: true
         });
 

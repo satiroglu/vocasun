@@ -82,11 +82,13 @@ async function fetchLearnSession(userId: string): Promise<SessionData> {
 
 // Şıkları çeken fonksiyon (Seçme modu için)
 async function fetchChoiceOptions(excludeId: number): Promise<VocabularyItem[]> {
-    const { data } = await supabase
-        .from('vocabulary')
-        .select('*')
-        .neq('id', excludeId)
-        .limit(3);
+    const { data, error } = await supabase
+        .rpc('get_choice_options', { exclude_id: excludeId, limit_count: 3 });
+
+    if (error) {
+        console.error('Error fetching choice options:', error);
+        return [];
+    }
 
     return (data as VocabularyItem[]) || [];
 }
@@ -158,19 +160,26 @@ export function useSaveProgress() {
             const nextReviewDate = new Date();
             nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
 
-            // Veritabanına Kaydet
-            await supabase
-                .from('user_progress')
-                .upsert({
-                    user_id: userId,
-                    vocab_id: vocabId,
-                    is_mastered: isMastered,
-                    updated_at: new Date().toISOString(),
-                    next_review: nextReviewDate.toISOString(),
-                    interval: newInterval,
-                    ease_factor: newEaseFactor,
-                    repetitions: newRepetitions
-                }, { onConflict: 'user_id, vocab_id' });
+            // Veritabanına Kaydet (RPC ile)
+            // console.log('Saving progress via RPC...', { userId, vocabId, isMastered, updated_at: new Date().toISOString() });
+
+            const { error: rpcError } = await supabase.rpc('save_user_progress', {
+                p_user_id: userId,
+                p_vocab_id: vocabId,
+                p_is_mastered: isMastered,
+                p_updated_at: new Date().toISOString(),
+                p_next_review: nextReviewDate.toISOString(),
+                p_interval: newInterval,
+                p_ease_factor: newEaseFactor,
+                p_repetitions: newRepetitions
+            });
+
+            // if (rpcError) {
+            //     console.error('Error saving progress (RPC):', rpcError);
+            //     throw new Error(rpcError.message);
+            // } else {
+            //     console.log('Progress saved successfully (RPC)');
+            // }
 
             // XP Artırma (Hem doğru cevapta hem de "Biliyorum" dendiğinde puan verilsin mi? 
             // İstek: "Kullanıcıya puan kazandır")

@@ -171,12 +171,12 @@ export default function Info() {
                     </section>
 
                     {/* --- Footer (Logo Entegrasyonu) --- */}
-                    <footer className="pt-6 pb-6 flex flex-col items-center justify-center gap-3 opacity-80 hover:opacity-100 transition">
+                    {/* <footer className="pt-6 pb-6 flex flex-col items-center justify-center gap-3 opacity-80 hover:opacity-100 transition">
                         <Logo />
                         <div className="text-center">
-                            <p className="text-xs text-slate-400">Her gün yeni bir kelime doğar.</p>
+                            <p className="text-xs text-slate-400">Yapay zeka destekli, modern kelime öğrenme platformu.</p>
                         </div>
-                    </footer>
+                    </footer> */}
 
                 </div>
             </div>

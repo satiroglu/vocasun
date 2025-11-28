@@ -13,7 +13,7 @@ import { useProfile } from '@/hooks/useProfile';
 import Logo from '@/components/Logo';
 
 export default function Navbar() {
-    const { user } = useUser(); // Optimize edilmiş auth hook
+    const { user, loading } = useUser(); // Optimize edilmiş auth hook
     const { data: profile } = useProfile(user?.id); // Optimize edilmiş profil hook (cache'li)
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const pathname = usePathname();
@@ -90,11 +90,22 @@ export default function Navbar() {
 
                     {/* --- SAĞ: PROFİL / GİRİŞ (Desktop) --- */}
                     <div className="hidden md:flex items-center gap-4 shrink-0">
-                        {user ? (
+                        {loading ? (
+                            // Loading State
+                            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                                <div className="flex items-center gap-3 bg-slate-50/80 p-1.5 pr-4 rounded-xl border border-slate-100/50 animate-pulse">
+                                    <div className="w-9 h-9 bg-slate-200 rounded-xl"></div>
+                                    <div className="hidden lg:block space-y-1">
+                                        <div className="w-20 h-3 bg-slate-200 rounded"></div>
+                                        <div className="w-12 h-2 bg-slate-200 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : user ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
                                 <Link
                                     href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
-                                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group bg-slate-50/80 p-1.5 pr-4 rounded-xl border border-slate-100/50"
+                                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group p-1.5 pr-4 rounded-xl"
                                 >
                                     <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100 group-hover:border-indigo-300 transition-colors overflow-hidden">
                                         {profile?.avatar_url ? (
@@ -104,7 +115,7 @@ export default function Navbar() {
                                         )}
                                     </div>
 
-                                    <div className="text-right hidden lg:block leading-tight">
+                                    <div className="text-left hidden lg:block leading-tight">
                                         <div className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{getDisplayName()}</div>
                                         <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md inline-block">
                                             {profile ? `Seviye ${profile.level}` : '...'}
@@ -156,7 +167,12 @@ export default function Navbar() {
                     {/* Menü İçeriği */}
                     <div className="fixed top-16 left-0 w-full bg-white border-b border-slate-200 shadow-xl z-50 md:hidden animate-in slide-in-from-top-5 fade-in duration-200">
                         <div className="px-4 pt-4 pb-6 space-y-2 max-h-[80vh] overflow-y-auto">
-                            {user ? (
+                            {loading ? (
+                                <div className="flex flex-col gap-3 mt-2 animate-pulse">
+                                    <div className="w-full h-12 bg-slate-100 rounded-xl"></div>
+                                    <div className="w-full h-12 bg-slate-100 rounded-xl"></div>
+                                </div>
+                            ) : user ? (
                                 <>
                                     <Link
                                         href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}

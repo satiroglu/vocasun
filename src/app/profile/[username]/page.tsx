@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Profile, UserProgress } from '@/types';
-import { User, Trophy, Calendar, Target, BookOpen, Clock, Medal } from 'lucide-react';
+import { User, Trophy, Calendar, Target, BookOpen, Clock, Medal, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/Button';
 
@@ -104,8 +104,10 @@ export default function UserProfile() {
                 {/* Profile Header Card */}
                 <div className="bg-white rounded-2xl shadow-xl shadow-indigo-100/50 border border-slate-100 overflow-hidden relative">
                     {/* Banner */}
-                    <div className="h-24 sm:h-48 bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 relative">
-                        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
+                    <div className="h-24 sm:h-48 bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-10">
+                            <Sparkles className="w-full h-full text-white scale-150 rotate-12 translate-x-10 -translate-y-10" strokeWidth={0.5} />
+                        </div>
                     </div>
 
                     <div className="px-6 sm:px-10 pb-8 relative">

@@ -131,18 +131,20 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Toplam XP */}
+                    {/* YENİ: Haftalık Puan Kartı */}
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
                         <div className="flex items-center gap-4 mb-4">
-                            <div className="p-3 bg-yellow-50 text-yellow-600 rounded-xl group-hover:scale-110 transition-transform">
+                            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
                                 <Trophy size={24} />
                             </div>
-                            <div className="font-bold text-slate-400 text-sm">Toplam Puan</div>
+                            <div className="font-bold text-slate-400 text-sm">Bu Hafta</div>
                         </div>
-                        <div className="text-3xl font-bold text-slate-800">{profile?.total_xp || 0} <span className="text-sm text-slate-400 font-medium">XP</span></div>
+                        <div className="text-3xl font-bold text-slate-800">
+                            {profile?.weekly_xp || 0} <span className="text-sm text-slate-400 font-medium">XP</span>
+                        </div>
                     </div>
 
-                    {/* Seviye */}
+                    {/* Seviye Kartı (Mevcut kodunda vardı, sadece yerini kaydırdık) */}
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
@@ -150,7 +152,9 @@ export default function Dashboard() {
                             </div>
                             <div className="font-bold text-slate-400 text-sm">Seviye</div>
                         </div>
-                        <div className="text-3xl font-bold text-slate-800">{profile?.level || 1} <span className="text-sm text-slate-400 font-medium">. Lvl</span></div>
+                        <div className="text-3xl font-bold text-slate-800">
+                            {profile?.level || 1} <span className="text-sm text-slate-400 font-medium">. Lvl</span>
+                        </div>
                     </div>
                 </div>
 

@@ -66,7 +66,7 @@ export default function Home() {
           </div>
 
           {/* Right: Visual Demo */}
-          <div className="relative hidden lg:block perspective-1000">
+          <div className="relative block perspective-1000 mt-10 lg:mt-0">
             <DynamicWordCard />
           </div>
         </div>

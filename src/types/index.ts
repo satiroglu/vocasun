@@ -5,14 +5,15 @@ export interface Profile {
     last_name: string | null;
     email: string;
     total_xp: number;
+    weekly_xp: number; // <--- YENİ EKLENEN SATIR
     level: number;
     daily_goal: number;
     bio?: string;
     avatar_url?: string;
     display_name_preference: 'username' | 'fullname';
-    leaderboard_visibility?: 'visible' | 'anonymous' | 'hidden'; // YENİ: Liderlik tablosu gizliliği
-    preferred_word_list?: 'general' | 'academic' | 'business' | 'toefl' | 'ielts'; // YENİ: Tercih edilen kelime listesi
-    difficulty_level?: 'beginner' | 'intermediate' | 'advanced' | 'mixed'; // YENİ: Zorluk seviyesi
+    leaderboard_visibility?: 'visible' | 'anonymous' | 'hidden';
+    preferred_word_list?: 'general' | 'academic' | 'business' | 'toefl' | 'ielts';
+    difficulty_level?: 'beginner' | 'intermediate' | 'advanced' | 'mixed';
     created_at: string;
     marked_for_deletion_at?: string | null;
 }

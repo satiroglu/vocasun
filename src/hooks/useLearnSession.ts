@@ -121,19 +121,22 @@ export function useSaveProgress() {
             userId,
             vocabId,
             isCorrect,
-            isMasteredManually = false
+            isMasteredManually = false,
+            mode = 'choice' // <--- YENİ: Varsayılan 'choice'
         }: {
             userId: string;
             vocabId: number;
             isCorrect: boolean;
             isMasteredManually?: boolean;
+            mode?: string; // <--- YENİ: 'mode' parametresi
         }) => {
             // Veritabanına Kaydet (RPC ile - SRS mantığı artık SQL tarafında)
-            const { error: rpcError } = await supabase.rpc('save_user_progress', {
+            const { data, error: rpcError } = await supabase.rpc('save_user_progress', {
                 p_user_id: userId,
                 p_vocab_id: vocabId,
                 p_is_correct: isCorrect,
-                p_is_mastered: isMasteredManually
+                p_is_mastered: isMasteredManually,
+                p_mode: mode// <--- YENİ: Mod bilgisini gönderiyoruz
             });
 
             if (rpcError) {
@@ -141,16 +144,20 @@ export function useSaveProgress() {
                 throw new Error(rpcError.message);
             }
 
+            return data; // Backend'den dönen puan/level bilgisini dönebiliriz
+
             // XP Artırma
-            if (isCorrect || isMasteredManually) {
-                await supabase.rpc('increment_score', { row_id: userId });
-            }
+            // if (isCorrect || isMasteredManually) {
+            //     await supabase.rpc('increment_score', { row_id: userId });
+            // }
         },
         onSuccess: () => {
-            // Dashboard verilerini yenile
+            // Eğer seviye atladıysa burada data.level_up kontrolü yapabilirsin
+            // Dashboard, History ve Profil verilerini yenile
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
             queryClient.invalidateQueries({ queryKey: ['history'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
+            queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
         },
     });
 }

@@ -182,7 +182,7 @@ export default function History() {
                             <HistoryIcon size={32} />
                         </div>
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Kelime Geçmişim</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Kelimelerim</h1>
                             <p className="text-slate-500 mt-1">Öğrendiğin ve çalıştığın tüm kelimeleri buradan yönetebilirsin.</p>
                         </div>
                     </div>

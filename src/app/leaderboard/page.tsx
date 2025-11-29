@@ -41,8 +41,8 @@ export default function Leaderboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 px-4 pt-24 pb-20 font-sans">
-            <div className="w-full max-w-5xl mx-auto">
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans pt-20 pb-20">
+            <div className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6">
 
                 {/* HEADER */}
                 <div className="flex items-center gap-5 mb-8">

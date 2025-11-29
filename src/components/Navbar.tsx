@@ -16,16 +16,31 @@ export default function Navbar() {
     const { user, loading } = useUser(); // Optimize edilmiş auth hook
     const { data: profile } = useProfile(user?.id); // Optimize edilmiş profil hook (cache'li)
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
 
-    // Sayfa değiştiğinde mobil menüyü kapat
+    // Sayfa değiştiğinde menüleri kapat
     useEffect(() => {
         setIsMenuOpen(false);
+        setIsUserMenuOpen(false);
     }, [pathname]);
+
+    // Dışarı tıklandığında user menüyü kapat
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.user-menu-container')) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleLogout = async () => {
         setIsMenuOpen(false);
+        setIsUserMenuOpen(false);
         await supabase.auth.signOut();
         router.push('/login');
         router.refresh();
@@ -39,11 +54,19 @@ export default function Navbar() {
         return profile.username || profile.first_name || user?.email?.split('@')[0] || 'Öğrenci';
     };
 
-    const navLinks = [
+    // Ana Navigasyon Linkleri (Desktop'ta bar üzerinde görünenler)
+    const mainNavLinks = [
         { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Öğren', href: '/learn', icon: BookOpen },
         { name: 'Liderlik', href: '/leaderboard', icon: Trophy },
+        { name: 'Kelimelerim', href: '/history', icon: BookOpen }, // History -> Kelimelerim olarak güncellendi
+    ];
+
+    // Kullanıcı Menüsü Linkleri (Desktop'ta dropdown içinde, Mobil'de listede)
+    const userMenuLinks = [
+        { name: 'Profil', href: profile?.username ? `/profile/${profile.username}` : '/dashboard', icon: User },
         { name: 'Nasıl?', href: '/info', icon: HelpCircle },
+        { name: 'Yardım', href: '/help', icon: HelpCircle },
         { name: 'Ayarlar', href: '/settings', icon: Settings },
     ];
 
@@ -65,10 +88,10 @@ export default function Navbar() {
                         />
                     </div>
 
-                    {/* --- ORTA: DESKTOP MENÜ --- */}
+                    {/* --- ORTA: DESKTOP MENÜ (Sadece Ana Linkler) --- */}
                     {user && (
                         <div className="hidden md:flex items-center justify-center gap-1 flex-1">
-                            {navLinks.map((link) => {
+                            {mainNavLinks.map((link) => {
                                 const isActive = pathname === link.href;
                                 return (
                                     <Link
@@ -102,10 +125,11 @@ export default function Navbar() {
                                 </div>
                             </div>
                         ) : user ? (
-                            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                                <Link
-                                    href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
-                                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group p-1.5 pr-4 rounded-xl"
+                            <div className="flex items-center gap-3 pl-4 border-l border-slate-200 relative user-menu-container">
+                                {/* Kullanıcı Dropdown Tetikleyici */}
+                                <button
+                                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                    className={`flex items-center gap-3 hover:opacity-80 transition-all group p-1.5 pr-4 rounded-xl border ${isUserMenuOpen ? 'bg-indigo-50 border-indigo-100' : 'border-transparent hover:bg-slate-50'}`}
                                 >
                                     <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100 group-hover:border-indigo-300 transition-colors overflow-hidden">
                                         {profile?.avatar_url ? (
@@ -121,15 +145,34 @@ export default function Navbar() {
                                             {profile ? `Seviye ${profile.level}` : '...'}
                                         </div>
                                     </div>
-                                </Link>
-
-                                <button
-                                    onClick={handleLogout}
-                                    className="ml-2 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors group"
-                                    title="Çıkış Yap"
-                                >
-                                    <LogOut size={20} className="group-hover:-translate-x-0.5 transition-transform" />
                                 </button>
+
+                                {/* Dropdown Menü */}
+                                {isUserMenuOpen && (
+                                    <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
+                                        <div className="p-2 space-y-1">
+                                            {userMenuLinks.map((link) => (
+                                                <Link
+                                                    key={link.href}
+                                                    href={link.href}
+                                                    onClick={() => setIsUserMenuOpen(false)}
+                                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                                >
+                                                    <link.icon size={18} />
+                                                    {link.name}
+                                                </Link>
+                                            ))}
+                                            <div className="h-px bg-slate-100 my-1"></div>
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                                            >
+                                                <LogOut size={18} />
+                                                Çıkış Yap
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="flex items-center gap-3">
@@ -174,6 +217,7 @@ export default function Navbar() {
                                 </div>
                             ) : user ? (
                                 <>
+                                    {/* Mobil Profil Özeti */}
                                     <Link
                                         href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
                                         onClick={() => setIsMenuOpen(false)}
@@ -192,7 +236,31 @@ export default function Navbar() {
                                         </div>
                                     </Link>
 
-                                    {navLinks.map((link) => {
+                                    {/* Ana Linkler */}
+                                    {mainNavLinks.map((link) => {
+                                        const isActive = pathname === link.href;
+                                        return (
+                                            <Link
+                                                key={link.href}
+                                                href={link.href}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all
+                                  ${isActive
+                                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                                        : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'
+                                                    }`
+                                                }
+                                            >
+                                                <link.icon size={20} />
+                                                {link.name}
+                                            </Link>
+                                        )
+                                    })}
+
+                                    <div className="h-px bg-slate-100 my-2"></div>
+
+                                    {/* Kullanıcı Menüsü Linkleri (Mobilde devamı olarak) */}
+                                    {userMenuLinks.map((link) => {
                                         const isActive = pathname === link.href;
                                         return (
                                             <Link

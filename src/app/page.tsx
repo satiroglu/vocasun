@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import Button from '@/components/Button';
 import Logo from '@/components/Logo';
+import DynamicWordCard from '@/components/DynamicWordCard';
 
 export default function Home() {
   return (
@@ -19,7 +20,7 @@ export default function Home() {
           <div className="absolute top-[20%] right-[10%] w-[20%] h-[20%] bg-amber-300/20 rounded-full blur-[80px]"></div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center relative z-10">
+        <div className="max-w-5xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center relative z-10">
 
           {/* Left: Text Content */}
           <div className="text-center lg:text-left">
@@ -66,44 +67,14 @@ export default function Home() {
 
           {/* Right: Visual Demo */}
           <div className="relative hidden lg:block perspective-1000">
-            {/* Floating Card Demo */}
-            <div className="relative w-80 h-[420px] mx-auto bg-white rounded-xl shadow-2xl shadow-indigo-200/50 border border-white/50 flex flex-col p-8 rotate-3 hover:rotate-0 transition duration-500 group cursor-default backdrop-blur-sm">
-              <div className="flex justify-between items-center mb-10">
-                <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full border border-indigo-100">B2 Seviye</span>
-                <span className="bg-slate-50 text-slate-500 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-100">Fiil</span>
-              </div>
-
-              <div className="flex-grow flex flex-col items-center justify-center text-center mb-4">
-                <h3 className="text-4xl font-extrabold text-slate-800 mb-3 group-hover:scale-110 transition duration-300">resilience</h3>
-                <p className="text-slate-400 font-medium">(Direnç, Esneklik)</p>
-              </div>
-
-              <div className="mt-auto space-y-3">
-                <div className="relative">
-                  <input disabled type="text" value="resilience" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-center font-bold text-slate-800" />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"><CheckCircle size={20} /></div>
-                </div>
-                <div className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-center shadow-lg shadow-indigo-200">
-                  Kontrol Et
-                </div>
-              </div>
-
-              {/* Floating Badge */}
-              <div className="absolute -right-8 top-24 bg-white p-3 rounded-xl shadow-xl border border-slate-100 flex items-center gap-3 animate-bounce">
-                <div className="bg-yellow-100 p-2 rounded-full text-yellow-600"><Trophy size={20} /></div>
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Kazanılan</div>
-                  <div className="font-bold text-slate-800 text-lg leading-none">+10 XP</div>
-                </div>
-              </div>
-            </div>
+            <DynamicWordCard />
           </div>
         </div>
       </header>
 
       {/* --- Stats Section --- */}
       <section className="py-10 bg-white border-y border-slate-100">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
           <StatItem number="10K+" label="Kelime Havuzu" />
           <StatItem number="5K+" label="Mutlu Öğrenci" />
           <StatItem number="1M+" label="Pratik Yapıldı" />
@@ -113,7 +84,7 @@ export default function Home() {
 
       {/* --- Features Grid --- */}
       <section id="features" className="py-24 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">
               Sadece Ezberleme, <span className="text-indigo-600">İçselleştir.</span>
@@ -148,7 +119,7 @@ export default function Home() {
 
       {/* --- How It Works Section --- */}
       <section id="how-it-works" className="py-24 bg-white relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Nasıl Çalışır?</h2>
             <p className="text-slate-600 text-lg">3 basit adımda kelime hazineni geliştirmeye başla.</p>
@@ -203,7 +174,7 @@ export default function Home() {
 
       {/* --- Footer --- */}
       <footer className="bg-white border-t border-slate-100 py-16">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
             <Logo />
             <p className="text-slate-500 text-sm max-w-xs text-center md:text-left">

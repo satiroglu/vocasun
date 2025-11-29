@@ -21,7 +21,25 @@ const getLevelColor = (level: string | undefined) => {
 };
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const TYPES = ['noun', 'verb', 'adjective', 'adverb', 'phrase', 'idiom'];
+const TYPES = [
+    'adjective',
+    'adverb',
+    'auxiliary verb',
+    'conjunction',
+    'definite article',
+    'determiner',
+    'exclamation',
+    'indefinite article',
+    'infinitive marker',
+    'linking verb',
+    'modal verb',
+    'noun',
+    'number',
+    'ordinal number',
+    'preposition',
+    'pronoun',
+    'verb'
+];
 
 export default function History() {
     const { user } = useUser();

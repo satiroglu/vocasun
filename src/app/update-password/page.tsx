@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { Lock, Eye, EyeOff, Save, CheckCircle, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
+
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import Logo from '@/components/Logo';
@@ -41,56 +41,67 @@ export default function UpdatePassword() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
 
-            <Logo className="mb-6 sm:mb-8" />
+            {/* Dynamic Background Elements */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-400/20 rounded-full blur-[100px] animate-pulse"></div>
+                <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-purple-400/20 rounded-full blur-[100px]"></div>
+            </div>
 
-            <div className="bg-white w-full max-w-md p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl shadow-indigo-100/50 border border-slate-200/50">
-                <div className="text-center mb-6 sm:mb-8">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Lock size={28} className="sm:w-10 sm:h-10" />
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Yeni Şifre Belirle</h2>
-                    <p className="text-slate-600 text-sm sm:text-base">Lütfen hesabınız için yeni bir şifre girin.</p>
+            <div className="relative z-10 w-full max-w-md">
+                {/* Logo */}
+                <div className="flex justify-center mb-8">
+                    <Logo />
                 </div>
 
-                {message && (
-                    <div className={`p-4 sm:p-5 rounded-xl mb-6 flex items-start gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                        {message.type === 'success' ? <CheckCircle size={22} className="shrink-0 mt-0.5" /> : <AlertCircle size={22} className="shrink-0 mt-0.5" />}
-                        <span className="text-sm sm:text-base font-medium leading-relaxed">{message.text}</span>
+                <div className="bg-white/80 backdrop-blur-xl p-8 rounded-xl shadow-2xl shadow-indigo-100/50 border border-white/50">
+                    <div className="text-center mb-8">
+                        <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <Lock size={32} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Yeni Şifre Belirle</h2>
+                        <p className="text-slate-600 text-sm">Lütfen hesabınız için yeni bir şifre girin.</p>
                     </div>
-                )}
 
-                <form onSubmit={handleUpdate} className="space-y-5 sm:space-y-6">
-                    <div className="relative">
-                        <Input
-                            label="Yeni Şifre"
-                            type={showPass ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            required
-                            className="pr-12"
-                            icon={<Lock size={18} />}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPass(!showPass)}
-                            className="absolute right-3 top-[38px] text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                    {message && (
+                        <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 ${message.type === 'success' ? 'bg-green-50/50 text-green-700 border border-green-100' : 'bg-red-50/50 text-red-700 border border-red-100'}`}>
+                            {message.type === 'success' ? <CheckCircle size={22} className="shrink-0 mt-0.5" /> : <AlertCircle size={22} className="shrink-0 mt-0.5" />}
+                            <span className="text-sm font-medium leading-relaxed">{message.text}</span>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleUpdate} className="space-y-6">
+                        <div className="relative">
+                            <Input
+                                label="Yeni Şifre"
+                                type={showPass ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                required
+                                className="pr-12"
+                                icon={<Lock size={18} />}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPass(!showPass)}
+                                className="absolute right-3 top-[38px] text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                            >
+                                {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+
+                        <Button
+                            type="submit"
+                            isLoading={loading}
+                            className="w-full h-12 text-lg font-bold shadow-indigo-200 hover:shadow-indigo-300"
+                            icon={!loading && <Save size={20} />}
                         >
-                            {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                    </div>
-
-                    <Button
-                        type="submit"
-                        isLoading={loading}
-                        className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold"
-                        icon={!loading && <Save size={20} />}
-                    >
-                        Şifreyi Güncelle
-                    </Button>
-                </form>
+                            Şifreyi Güncelle
+                        </Button>
+                    </form>
+                </div>
             </div>
         </div>
     );

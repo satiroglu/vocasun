@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Profile, UserProgress } from '@/types';
-import { User, Trophy, Calendar, Target, BookOpen, Clock, Medal, Sparkles } from 'lucide-react';
+import { User, Trophy, Calendar, Target, BookOpen, Clock, Medal, Sparkles, Star } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/Button';
 
@@ -150,9 +150,15 @@ export default function UserProfile() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard
                         icon={<Trophy size={20} className="text-yellow-600" />}
+                        label="Haftalık XP" // Değişti
+                        value={profile.weekly_xp?.toLocaleString() || 0} // Değişti
+                        color="bg-yellow-50 border-yellow-100"
+                    />
+                    <StatCard
+                        icon={<Star size={20} className="text-orange-500" />} // İkon değişti
                         label="Toplam XP"
                         value={profile.total_xp.toLocaleString()}
-                        color="bg-yellow-50 border-yellow-100"
+                        color="bg-orange-50 border-orange-100"
                     />
                     <StatCard
                         icon={<Target size={20} className="text-purple-600" />}
@@ -162,15 +168,9 @@ export default function UserProfile() {
                     />
                     <StatCard
                         icon={<BookOpen size={20} className="text-indigo-600" />}
-                        label="Öğrenilen Kelime"
+                        label="Kelime"
                         value={profile.learned_count || 0}
                         color="bg-indigo-50 border-indigo-100"
-                    />
-                    <StatCard
-                        icon={<Medal size={20} className="text-emerald-600" />}
-                        label="Başarı Puanı"
-                        value="Top %5" // Placeholder logic, could be calculated
-                        color="bg-emerald-50 border-emerald-100"
                     />
                 </div>
 

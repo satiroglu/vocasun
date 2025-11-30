@@ -16,20 +16,35 @@ export async function GET(request: Request) {
             }
         );
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const { searchParams } = new URL(request.url);
+        const query = searchParams.get('q');
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '50');
+        const offset = (page - 1) * limit;
 
-        const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
-        if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        let dbQuery = supabase
+            .from('vocabulary')
+            .select('*', { count: 'exact' });
 
-        const { data: profiles, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false });
+        if (query) {
+            dbQuery = dbQuery.ilike('word', `%${query}%`);
+        }
+
+        const { data: words, count, error } = await dbQuery
+            .order('id', { ascending: false })
+            .range(offset, offset + limit - 1);
 
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-        return NextResponse.json({ users: profiles });
+        return NextResponse.json({
+            words,
+            pagination: {
+                total: count,
+                page,
+                limit,
+                totalPages: count ? Math.ceil(count / limit) : 0
+            }
+        });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -55,33 +70,12 @@ export async function POST(request: Request) {
         const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
         if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-        const { email, password, ...profileData } = await request.json();
-
-        if (!email || !password) {
-            return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
-        }
-
-        const supabaseAdmin = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            {
-                cookies: {
-                    getAll() { return [] },
-                    setAll() { }
-                }
-            }
-        );
-
-        const { data, error } = await supabaseAdmin.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: profileData
-        });
+        const body = await request.json();
+        const { data, error } = await supabase.from('vocabulary').insert([body]).select().single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-        return NextResponse.json({ user: data.user });
+        return NextResponse.json({ word: data });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -110,10 +104,8 @@ export async function PUT(request: Request) {
         const body = await request.json();
         const { id, ...updates } = body;
 
-        if (!id) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
-
         const { data, error } = await supabase
-            .from('profiles')
+            .from('vocabulary')
             .update(updates)
             .eq('id', id)
             .select()
@@ -121,7 +113,7 @@ export async function PUT(request: Request) {
 
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-        return NextResponse.json({ user: data });
+        return NextResponse.json({ word: data });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -148,23 +140,11 @@ export async function DELETE(request: Request) {
         if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
         const { id } = await request.json();
-        if (!id) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+        const { error } = await supabase.from('vocabulary').delete().eq('id', id);
 
-        const supabaseAdmin = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            {
-                cookies: {
-                    getAll() { return [] },
-                    setAll() { }
-                }
-            }
-        );
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
-        if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 });
-
-        return NextResponse.json({ message: 'User deleted successfully' });
+        return NextResponse.json({ success: true });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

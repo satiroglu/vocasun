@@ -1,76 +1,148 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import Button from '@/components/Button';
+import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 export default function Welcome() {
-    useEffect(() => {
-        // Trigger confetti animation on mount
-        const duration = 3 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+    const [mounted, setMounted] = useState(false);
 
-        const randomInRange = (min: number, max: number) => {
-            return Math.random() * (max - min) + min;
+    useEffect(() => {
+        setMounted(true);
+
+        // Brand Colors Confetti (Indigo, Purple, Pink)
+        const fireConfetti = () => {
+            const colors = ['#4f46e5', '#7c3aed', '#db2777'];
+
+            // Single burst from left
+            confetti({
+                particleCount: 50,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0, y: 0.8 },
+                colors: colors
+            });
+
+            // Single burst from right
+            confetti({
+                particleCount: 50,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1, y: 0.8 },
+                colors: colors
+            });
         };
 
-        const interval: NodeJS.Timeout = setInterval(function () {
-            const timeLeft = animationEnd - Date.now();
-
-            if (timeLeft <= 0) {
-                return clearInterval(interval);
-            }
-
-            const particleCount = 50 * (timeLeft / duration);
-            // since particles fall down, start a bit higher than random
-            confetti({
-                ...defaults,
-                particleCount,
-                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-            });
-            confetti({
-                ...defaults,
-                particleCount,
-                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-            });
-        }, 250);
-
-        return () => clearInterval(interval);
+        // Small delay to ensure smooth entrance
+        setTimeout(fireConfetti, 500);
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 relative overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6">
-            {/* Dynamic Background Elements */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-green-400/20 rounded-full blur-[100px] animate-pulse"></div>
-                <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-indigo-400/20 rounded-full blur-[100px]"></div>
+        <div className="min-h-[100dvh] bg-slate-50 relative overflow-hidden flex flex-col items-center justify-center p-4">
+            {/* Vocasun Brand Background Elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-200/40 rounded-full blur-[100px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-200/40 rounded-full blur-[100px] animate-pulse delay-1000" />
             </div>
 
-            <div className="relative z-10 w-full max-w-md bg-white/80 backdrop-blur-xl p-8 rounded-xl shadow-2xl shadow-indigo-100/50 border border-white/50 text-center">
-                <div className="flex justify-center mb-8">
+            {/* Floating Sparkles */}
+            {mounted && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.5, duration: 0.5 }}
+                        className="absolute top-1/4 left-1/4 text-indigo-300 hidden md:block"
+                    >
+                        <Sparkles size={32} />
+                    </motion.div>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.7, duration: 0.5 }}
+                        className="absolute bottom-1/4 right-1/4 text-purple-300 hidden md:block"
+                    >
+                        <Sparkles size={24} />
+                    </motion.div>
+                </>
+            )}
+
+            {/* Main Card */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="relative z-10 w-full max-w-lg p-8 md:p-12 text-center"
+            >
+                {/* Logo */}
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex justify-center mb-8"
+                >
                     <Logo />
-                </div>
+                </motion.div>
 
-                <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-bounce-slow">
-                    <CheckCircle size={48} strokeWidth={3} />
-                </div>
+                {/* Success Icon */}
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.3 }}
+                    className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-indigo-200"
+                >
+                    <Check size={40} className="text-white" strokeWidth={3} />
+                </motion.div>
 
-                <h2 className="text-3xl font-bold text-slate-900 mb-3">Hoş Geldin!</h2>
-                <p className="text-slate-600 mb-8 text-base leading-relaxed px-2">
-                    E-posta adresin başarıyla doğrulandı. Artık Vocasun ailesinin bir parçasısın. Öğrenme yolculuğuna başlamaya hazır mısın?
-                </p>
+                {/* Text Content */}
+                <motion.h1
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight"
+                >
+                    Aramıza Hoş Geldin!
+                </motion.h1>
 
-                <Link href="/dashboard" className="block w-full">
-                    <Button className="w-full h-14 text-lg font-bold shadow-indigo-200 hover:shadow-indigo-300 flex items-center justify-center gap-2 group">
-                        Öğrenmeye Başla
-                        <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                </Link>
-            </div>
+                <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-lg text-slate-600 mb-10 leading-relaxed"
+                >
+                    Hesabın başarıyla oluşturuldu ve doğrulandı. <br />
+                    Şimdi potansiyelini keşfetme zamanı.
+                </motion.p>
+
+                {/* Action Button */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                >
+                    <Link href="/dashboard" className="block w-full">
+                        <button className="w-full group relative px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-200 hover:shadow-2xl hover:shadow-indigo-300 hover:bg-indigo-700 hover:scale-[1.02] transition-all duration-300">
+                            <span className="relative flex items-center justify-center gap-2">
+                                Öğrenmeye Başla
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </span>
+                        </button>
+                    </Link>
+                </motion.div>
+            </motion.div>
+
+            {/* Footer Text */}
+            <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="mt-8 text-sm text-slate-400 font-medium"
+            >
+                Vocasun ile her gün daha ileriye.
+            </motion.p>
         </div>
     );
 }

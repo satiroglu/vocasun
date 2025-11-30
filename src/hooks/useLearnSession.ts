@@ -4,6 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { VocabularyItem } from '@/types';
 
+// Backend'den gelen zenginleştirilmiş veri tipi
+interface EnrichedVocabularyItem extends VocabularyItem {
+    interval: number;
+    ease_factor: number;
+    repetitions: number;
+    status: 'new' | 'review';
+}
+
 interface ProgressMap {
     [key: number]: {
         interval: number;
@@ -18,9 +26,9 @@ interface SessionData {
     progressMap: ProgressMap;
 }
 
-// Öğrenme oturumu verilerini çeken optimize edilmiş fonksiyon
+// ARTIK TEK SORGULUK, HIZLI VE TEMİZ FONKSİYON
 async function fetchLearnSession(userId: string): Promise<SessionData> {
-    // 0. Kullanıcının günlük hedefini çek
+    // 1. Günlük hedefi al
     const { data: profile } = await supabase
         .from('profiles')
         .select('daily_goal')
@@ -29,56 +37,45 @@ async function fetchLearnSession(userId: string): Promise<SessionData> {
 
     const limit = profile?.daily_goal || 10;
 
-    // 1. Akıllı öğrenme oturumu (Review + New Words)
-    const { data: words, error } = await supabase
+    // 2. Akıllı oturumu çek (Tek istek!)
+    const { data, error } = await supabase
         .rpc('get_learning_session', { p_user_id: userId, p_limit: limit });
 
     if (error) {
-        console.error('Error fetching random words:', error);
+        console.error('Error fetching session:', error);
         return { words: [], progressMap: {} };
     }
 
-    const shuffledWords = (words as VocabularyItem[]) || [];
+    // Gelen JSON verisini işle
+    const items = (data as EnrichedVocabularyItem[]) || [];
 
-    if (shuffledWords.length === 0) {
+    if (items.length === 0) {
         return { words: [], progressMap: {} };
     }
 
-    // 2. Bu kelimelerin ilerleme durumlarını çek
-    const wordIds = shuffledWords.map(w => w.id);
-    const { data: progressData } = await supabase
-        .from('user_progress')
-        .select('vocab_id, interval, ease_factor, repetitions')
-        .eq('user_id', userId)
-        .in('vocab_id', wordIds);
-
-    // Progress Map oluştur
+    // 3. Veriyi Frontend'in beklediği yapıya dönüştür
+    const words: VocabularyItem[] = [];
     const pMap: ProgressMap = {};
 
-    // Önce tüm kelimeler için varsayılan "Yeni" kaydı oluştur
-    shuffledWords.forEach(w => {
-        pMap[w.id] = {
-            interval: 0,
-            ease_factor: 2.5,
-            repetitions: 0,
-            is_new: true
+    items.forEach(item => {
+        // Kelime listesine saf kelime verisini ekle
+        // (status, interval gibi alanları ayıklıyoruz)
+        const { interval, ease_factor, repetitions, status, ...vocabData } = item;
+        words.push(vocabData as VocabularyItem);
+
+        // İlerleme haritasını doldur
+        pMap[item.id] = {
+            interval: item.interval,
+            ease_factor: item.ease_factor,
+            repetitions: item.repetitions,
+            is_new: item.status === 'new'
         };
     });
 
-    // Varsa veritabanından gelen verilerle güncelle
-    progressData?.forEach((p: any) => {
-        pMap[p.vocab_id] = {
-            interval: p.interval,
-            ease_factor: p.ease_factor,
-            repetitions: p.repetitions,
-            is_new: false // Veritabanında varsa yeni değildir
-        };
-    });
-
-    return { words: shuffledWords, progressMap: pMap };
+    return { words, progressMap: pMap };
 }
 
-// Şıkları çeken fonksiyon (Seçme modu için)
+// Şıkları çeken fonksiyon (Değişmedi)
 async function fetchChoiceOptions(excludeId: number): Promise<VocabularyItem[]> {
     const { data, error } = await supabase
         .rpc('get_choice_options', { exclude_id: excludeId, limit_count: 3 });
@@ -87,11 +84,10 @@ async function fetchChoiceOptions(excludeId: number): Promise<VocabularyItem[]> 
         console.error('Error fetching choice options:', error);
         return [];
     }
-
     return (data as VocabularyItem[]) || [];
 }
 
-// Learn session hook
+// Hook (Değişmedi)
 export function useLearnSession(userId: string | undefined) {
     return useQuery({
         queryKey: ['learn-session', userId],
@@ -102,7 +98,7 @@ export function useLearnSession(userId: string | undefined) {
     });
 }
 
-// Şıkları çeken hook (Seçme modu için)
+// Şık Hook'u (Değişmedi)
 export function useChoiceOptions(wordId: number | undefined) {
     return useQuery({
         queryKey: ['choice-options', wordId],
@@ -112,7 +108,7 @@ export function useChoiceOptions(wordId: number | undefined) {
     });
 }
 
-// İlerleme kaydetme mutation
+// Progress Kaydetme (Değişmedi - Zaten güvenli hale getirmiştik)
 export function useSaveProgress() {
     const queryClient = useQueryClient();
 
@@ -120,30 +116,25 @@ export function useSaveProgress() {
         mutationFn: async ({
             userId,
             vocabId,
-            userAnswer, // ARTIK CEVABI GÖNDERİYORUZ
+            userAnswer,
             isMastered = false,
             mode = 'flip'
         }: {
             userId: string;
             vocabId: number;
-            userAnswer?: string | null; // String veya null olabilir
+            userAnswer?: string | null;
             isMastered?: boolean;
             mode?: 'write' | 'choice' | 'flip';
         }) => {
-            // Veritabanına Kaydet (RPC parametreleri güncellendi)
             const { data, error: rpcError } = await supabase.rpc('save_user_progress', {
                 p_user_id: userId,
                 p_vocab_id: vocabId,
-                p_user_answer: userAnswer, // Yeni parametre
+                p_user_answer: userAnswer,
                 p_is_mastered: isMastered,
                 p_mode: mode
             });
 
-            if (rpcError) {
-                console.error('Error saving progress (RPC):', rpcError);
-                throw new Error(rpcError.message);
-            }
-
+            if (rpcError) throw new Error(rpcError.message);
             return data;
         },
         onSuccess: () => {

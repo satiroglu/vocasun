@@ -71,7 +71,7 @@ export default function Navbar() {
     ];
 
     // Auth sayfalarında, Learn sayfasında ve Admin sayfalarında navbar gösterme
-    const hiddenPages = ['/login', '/register', '/forgot-password', '/update-password', '/learn'];
+    const hiddenPages = ['/login', '/register', '/forgot-password', '/update-password', '/learn', '/welcome'];
     if (hiddenPages.includes(pathname) || pathname.startsWith('/admin')) return null;
 
     return (

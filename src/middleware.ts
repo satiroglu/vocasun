@@ -28,5 +28,6 @@ export const config = {
         '/register',
         '/auth/:path*',
         '/update-password',
+        '/welcome',
     ],
 };

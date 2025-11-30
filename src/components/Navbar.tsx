@@ -70,9 +70,9 @@ export default function Navbar() {
         { name: 'Ayarlar', href: '/settings', icon: Settings },
     ];
 
-    // Auth sayfalarında ve Learn sayfasında navbar gösterme
+    // Auth sayfalarında, Learn sayfasında ve Admin sayfalarında navbar gösterme
     const hiddenPages = ['/login', '/register', '/forgot-password', '/update-password', '/learn'];
-    if (hiddenPages.includes(pathname)) return null;
+    if (hiddenPages.includes(pathname) || pathname.startsWith('/admin')) return null;
 
     return (
         <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300 h-16">

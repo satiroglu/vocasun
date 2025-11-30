@@ -9,7 +9,7 @@ interface ProgressMap {
         interval: number;
         ease_factor: number;
         repetitions: number;
-        is_new: boolean; // YENİ: Durum etiketi için
+        is_new: boolean;
     }
 }
 
@@ -97,8 +97,8 @@ export function useLearnSession(userId: string | undefined) {
         queryKey: ['learn-session', userId],
         queryFn: () => fetchLearnSession(userId!),
         enabled: !!userId,
-        staleTime: 0, // Her seferinde yeni oturum
-        gcTime: 0, // Cache'de tutma
+        staleTime: 0,
+        gcTime: 0,
     });
 }
 
@@ -120,23 +120,23 @@ export function useSaveProgress() {
         mutationFn: async ({
             userId,
             vocabId,
-            isCorrect,
-            isMasteredManually = false,
-            mode = 'choice' // <--- YENİ: Varsayılan 'choice'
+            userAnswer, // ARTIK CEVABI GÖNDERİYORUZ
+            isMastered = false,
+            mode = 'flip'
         }: {
             userId: string;
             vocabId: number;
-            isCorrect: boolean;
-            isMasteredManually?: boolean;
-            mode?: string; // <--- YENİ: 'mode' parametresi
+            userAnswer?: string | null; // String veya null olabilir
+            isMastered?: boolean;
+            mode?: 'write' | 'choice' | 'flip';
         }) => {
-            // Veritabanına Kaydet (RPC ile - SRS mantığı artık SQL tarafında)
+            // Veritabanına Kaydet (RPC parametreleri güncellendi)
             const { data, error: rpcError } = await supabase.rpc('save_user_progress', {
                 p_user_id: userId,
                 p_vocab_id: vocabId,
-                p_is_correct: isCorrect,
-                p_is_mastered: isMasteredManually,
-                p_mode: mode// <--- YENİ: Mod bilgisini gönderiyoruz
+                p_user_answer: userAnswer, // Yeni parametre
+                p_is_mastered: isMastered,
+                p_mode: mode
             });
 
             if (rpcError) {
@@ -144,16 +144,9 @@ export function useSaveProgress() {
                 throw new Error(rpcError.message);
             }
 
-            return data; // Backend'den dönen puan/level bilgisini dönebiliriz
-
-            // XP Artırma
-            // if (isCorrect || isMasteredManually) {
-            //     await supabase.rpc('increment_score', { row_id: userId });
-            // }
+            return data;
         },
         onSuccess: () => {
-            // Eğer seviye atladıysa burada data.level_up kontrolü yapabilirsin
-            // Dashboard, History ve Profil verilerini yenile
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
             queryClient.invalidateQueries({ queryKey: ['history'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });

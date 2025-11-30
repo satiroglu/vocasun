@@ -5,7 +5,7 @@ export interface Profile {
     last_name: string | null;
     email: string;
     total_xp: number;
-    weekly_xp: number; // <--- YENİ EKLENEN SATIR
+    weekly_xp: number;
     level: number;
     daily_goal: number;
     bio?: string;
@@ -16,6 +16,7 @@ export interface Profile {
     difficulty_level?: 'beginner' | 'intermediate' | 'advanced' | 'mixed';
     created_at: string;
     marked_for_deletion_at?: string | null;
+    is_admin?: boolean;
 }
 
 export interface Vocabulary {
@@ -27,7 +28,11 @@ export interface Vocabulary {
     example_en: string;
     example_tr: string;
     audio_url?: string;
-    image_url?: string; // YENİ: Görsel desteği
+    image_url?: string;
+    definition?: string;
+    phonetic_ipa?: string;
+    synonyms?: string[];
+    antonyms?: string[];
 }
 
 export interface UserProgress {

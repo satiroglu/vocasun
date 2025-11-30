@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
     ArrowLeft, Volume2, Check, X, PenTool, LayoutGrid,
-    BookOpen, Sparkles, SkipForward, Trophy, RotateCcw, EyeOff, Clock
+    BookOpen, Sparkles, SkipForward, Trophy, RotateCcw, EyeOff, Clock,
+    Lightbulb, Info, AlertCircle, LogOut
 } from 'lucide-react';
 import { VocabularyItem } from '@/types';
 import Button from '@/components/Button';
 import { useUser } from '@/hooks/useUser';
 import { useLearnSession, useChoiceOptions, useSaveProgress } from '@/hooks/useLearnSession';
+import { getEditDistance } from '@/lib/utils'; // Utils dosyasını oluşturduğunu varsayıyorum
 
 type Mode = 'write' | 'choice' | 'flip';
 type FeedbackStatus = 'idle' | 'success' | 'error';
@@ -29,16 +31,20 @@ export default function Learn() {
     const [status, setStatus] = useState<FeedbackStatus>('idle');
     const [flipped, setFlipped] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null); // Ses kontrolü için ref
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const [showFullResult, setShowFullResult] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Local Queue State for Retry Logic
+    // --- YENİ STATE'LER (Akıllı Özellikler) ---
+    const [hintLevel, setHintLevel] = useState(0); // 0: Yok, 1: Tanım, 2: Maskeli, 3: Cümle
+    const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'warning' | 'info', text: string } | null>(null);
+    const [showExitModal, setShowExitModal] = useState(false);
+
+    // Local Queue State
     const [localQueue, setLocalQueue] = useState<VocabularyItem[]>([]);
-    // Track initial session length for progress bar (Daily Goal)
     const [initialSessionLength, setInitialSessionLength] = useState(0);
 
-    // Initialize localQueue when sessionData is loaded
+    // Initialize localQueue
     useEffect(() => {
         if (sessionData?.words) {
             setLocalQueue(sessionData.words);
@@ -56,12 +62,12 @@ export default function Learn() {
         setIsSessionFinished(false);
         setSessionStats({ correct: 0, wrong: 0, earnedXp: 0 });
         setCurrentIndex(0);
-        setLocalQueue([]); // Kuyruğu temizle
+        setLocalQueue([]);
         setInitialSessionLength(0);
         refetchSession();
     };
 
-    // Soru hazırlama
+    // Soru hazırlama ve State Resetleme
     useEffect(() => {
         setStatus('idle');
         setShowFullResult(false);
@@ -69,35 +75,35 @@ export default function Learn() {
         setFlipped(false);
         setIsProcessing(false);
 
+        // Her soruda ipucu ve mesajları sıfırla
+        setHintLevel(0);
+        setFeedbackMsg(null);
+
         if (mode === 'write') {
             setTimeout(() => inputRef.current?.focus(), 100);
         }
     }, [currentIndex, mode]);
 
-    // ETKİLEŞİM HANDLERS
-    // Ses Durdurma Fonksiyonu
+    // Ses Durdurma
     const stopAudio = () => {
-        // 1. HTML Audio varsa durdur
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
             audioRef.current = null;
         }
-        // 2. Speech Synthesis varsa durdur
         if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
         }
     };
 
     const playAudio = (text?: string) => {
-        stopAudio(); // Önceki sesi durdur
-
+        stopAudio();
         const wordToPlay = text || currentWord?.word;
         if (!wordToPlay) return;
 
         if (currentWord?.audio_url && !text) {
             const audio = new Audio(currentWord.audio_url);
-            audioRef.current = audio; // Ref'e ata
+            audioRef.current = audio;
             audio.play().catch(() => { });
         } else {
             const u = new SpeechSynthesisUtterance(wordToPlay);
@@ -119,12 +125,8 @@ export default function Learn() {
         } else {
             playAudio();
             setSessionStats(prev => ({ ...prev, wrong: prev.wrong + 1 }));
-
-            // RETRY LOGIC REMOVED: Linear progression requested
-            // setLocalQueue(prev => [...prev, currentWord]);
         }
 
-        // İlerlemeyi kaydet
         await saveProgressMutation.mutateAsync({
             userId: user.id,
             vocabId: currentWord.id,
@@ -132,48 +134,106 @@ export default function Learn() {
         });
     };
 
-    // "Bunu Biliyorum" (Mastery) İşleyicisi
+    // --- GELİŞMİŞ CEVAP KONTROLÜ ---
+    const checkWriteAnswer = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentWord) return;
+
+        const input = userInput.trim().toLowerCase();
+        const target = currentWord.word.toLowerCase();
+
+        // 1. TAM EŞLEŞME
+        if (input === target) {
+            handleAnswer(true);
+            return;
+        }
+
+        // 2. EŞ ANLAMLI (Doğru kabul et ama uyar)
+        if (currentWord.synonyms && currentWord.synonyms.some(s => s.toLowerCase() === input)) {
+            setFeedbackMsg({
+                type: 'info',
+                text: `Alternatif doğru cevap: "${userInput}". Biz "${currentWord.word}" kelimesini çalışıyoruz.`
+            });
+            handleAnswer(true); // <--- Doğru kabul edip geçiyoruz
+            return;
+        }
+
+        // 3. ZIT ANLAMLI (Yanlış kabul et ve uyar)
+        if (currentWord.antonyms && currentWord.antonyms.some(a => a.toLowerCase() === input)) {
+            setFeedbackMsg({
+                type: 'warning',
+                text: `Dikkat! "${userInput}" kelimesi "${currentWord.word}" kelimesinin zıt anlamlısıdır.`
+            });
+            handleAnswer(false);
+            return;
+        }
+
+        // 4. YAZIM HATASI (Doğru kabul et ama uyar)
+        const distance = getEditDistance(input, target);
+        const tolerance = target.length > 5 ? 2 : 1; // 5 harften uzunda 2 hata, kısada 1 hata toleransı
+
+        if (distance <= tolerance && distance > 0) {
+            setFeedbackMsg({
+                type: 'warning',
+                text: `Ufak bir yazım hatası: "${userInput}". Doğrusu: "${currentWord.word}".`
+            });
+            handleAnswer(true); // <--- Doğru kabul edip geçiyoruz
+            return;
+        }
+
+        // 5. YANLIŞ
+        handleAnswer(false);
+    };
+
+    const showHint = () => {
+        setHintLevel(prev => Math.min(prev + 1, 1));
+        // Klavyeyi kapat (mobil için)
+        if (inputRef.current) {
+            inputRef.current.blur();
+        }
+    };
+
     const handleAlreadyKnow = async () => {
         if (isProcessing || !user || !currentWord) return;
-        setIsProcessing(true);
 
-        // Kullanıcıya puan ver ve doğru kabul et ama sonucu göstermeden geç
+        // Bilgilendirme mesajı göster
+        setFeedbackMsg({
+            type: 'info',
+            text: 'Bu kelimeyi "Biliyorum" olarak işaretlediniz. Yanlışlıkla bastıysanız, "Kelimelerim" sayfasından tekrar çalışmaya ekleyebilirsiniz.'
+        });
+
+        setIsProcessing(true);
+        setStatus('success'); // Doğru olarak işaretle
+        setShowFullResult(true); // Sonuç ekranını göster
+        playAudio();
+
         setSessionStats(prev => ({ ...prev, correct: prev.correct + 1, earnedXp: prev.earnedXp + 10 }));
 
-        // Veritabanına kaydet (Mastered olarak)
         await saveProgressMutation.mutateAsync({
             userId: user.id,
             vocabId: currentWord.id,
-            isCorrect: true, // Teknik olarak doğru bildi
+            isCorrect: true,
             isMasteredManually: true
         });
-
-        // Hızlıca sonraki soruya geç
-        nextQuestion();
+        // nextQuestion() çağrısını kaldırdık, kullanıcı "Devam Et" butonuna basacak.
     };
 
     const nextQuestion = () => {
-        stopAudio(); // Soru geçerken sesi kes
+        stopAudio();
         if (currentIndex < localQueue.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            // Last word answered.
-            // Visually update to 100% (by incrementing index one last time)
             setCurrentIndex(currentIndex + 1);
-
-            // Wait for delay then show finish screen
             setTimeout(() => {
                 setIsSessionFinished(true);
             }, 1000);
         }
     };
 
-    // Şık listesini hazırla (choice modu için)
     const options = mode === 'choice' && currentWord
         ? [currentWord, ...choiceOptions].sort(() => Math.random() - 0.5)
         : [];
 
-    // Klavye Kısayolları
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (status !== 'idle' && showFullResult) {
@@ -204,7 +264,7 @@ export default function Learn() {
         </div>
     );
 
-    // --- RENDER: SONUÇ EKRANI (SESSION FINISHED) ---
+    // --- RENDER: SONUÇ EKRANI ---
     if (isSessionFinished) return (
         <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-slate-50 text-center font-sans pt-16">
             <div className="bg-white p-8 sm:p-12 rounded-xl shadow-xl border border-slate-100 w-full max-w-md animate-scale-up">
@@ -238,11 +298,9 @@ export default function Learn() {
     );
 
     if (!currentWord) {
-        // If we are in the "completion delay" state (index == length), show the layout with full progress
         if (currentIndex === initialSessionLength && !isSessionFinished) {
             return (
                 <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-0">
-                    {/* --- HEADER --- */}
                     <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16 fixed top-0 left-0 right-0">
                         <Link href="/dashboard" className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><ArrowLeft size={24} /></Link>
                         <div className="flex gap-1 bg-slate-100 p-1 rounded-lg opacity-50 pointer-events-none">
@@ -251,8 +309,6 @@ export default function Learn() {
                             <button className="p-2 rounded-md text-slate-400"><BookOpen size={22} /></button>
                         </div>
                     </div>
-
-                    {/* --- TOP BAR: Progress (FULL) --- */}
                     <div className="fixed top-16 left-0 right-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
                         <div className="max-w-lg mx-auto w-full">
                             <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
@@ -264,8 +320,6 @@ export default function Learn() {
                             </div>
                         </div>
                     </div>
-
-                    {/* --- MAIN CONTENT AREA (Empty or Loading) --- */}
                     <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-32 mb-4 items-center justify-center">
                         <div className="animate-pulse text-indigo-600 font-bold">Tamamlanıyor...</div>
                     </div>
@@ -275,10 +329,8 @@ export default function Learn() {
         return null;
     }
 
-    // Badge Logic
     const isNew = currentProgress?.is_new ?? true;
 
-    // Renk Helper
     const getLevelColor = (level: string | undefined) => {
         if (!level) return 'bg-slate-100 text-slate-600 border-slate-200';
         const l = level.toLowerCase();
@@ -288,10 +340,8 @@ export default function Learn() {
         return 'bg-slate-100 text-slate-600 border-slate-200';
     };
 
-    // Badge Component (Reusable)
     const WordBadges = ({ small = false }: { small?: boolean }) => (
         <div className={`flex items-center justify-center ${small ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
-            {/* Durum Etiketi */}
             <div className={`inline-flex items-center gap-1.5 ${small ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded-full font-bold uppercase tracking-wide border ${isNew
                 ? 'bg-blue-100 text-blue-700 border-blue-200'
                 : 'bg-orange-100 text-orange-700 border-orange-200'
@@ -299,15 +349,11 @@ export default function Learn() {
                 {isNew ? <Sparkles size={small ? 10 : 12} /> : <Clock size={small ? 10 : 12} />}
                 {isNew ? 'YENİ' : 'TEKRAR'}
             </div>
-
-            {/* Seviye Etiketi */}
             {currentWord.level && (
                 <div className={`inline-flex items-center gap-1.5 ${small ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded-full border font-bold uppercase tracking-wide ${getLevelColor(currentWord.level)}`}>
                     {currentWord.level}
                 </div>
             )}
-
-            {/* Tür Etiketi */}
             {currentWord.type && (
                 <div className={`inline-flex items-center gap-1.5 ${small ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold uppercase tracking-wide`}>
                     {currentWord.type}
@@ -316,40 +362,51 @@ export default function Learn() {
         </div>
     );
 
-    // Calculate Progress
-    // Use currentIndex for progress (starts at 0), capped at initialSessionLength
-    // This ensures progress starts at 0% and 0/10
     const progressPercentage = initialSessionLength > 0
         ? Math.min(100, (currentIndex / initialSessionLength) * 100)
         : 0;
 
-    // --- RENDER: AKTİF SORU EKRANI ---
     return (
-        // pt-0: Navbar gizli olduğu için padding yok
-        <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-0">
+        <div className="h-[100dvh] flex flex-col bg-slate-50 overflow-hidden font-sans">
 
-            {/* --- HEADER: Back & Mode Switcher --- */}
-            {/* top-0: Navbar gizli olduğu için en üstte */}
-            <div className="px-4 py-3 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-10 h-16 fixed top-0 left-0 right-0">
-                <Link href="/dashboard" className="p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><ArrowLeft size={24} /></Link>
+            {/* --- HEADER (Fixed Height, Non-Fixed Position) --- */}
+            <div className="h-16 px-4 flex items-center justify-between bg-white border-b border-slate-200 shrink-0 z-20">
+                <button onClick={() => setShowExitModal(true)} className="p-2.5 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><ArrowLeft size={28} /></button>
 
                 {/* Mod Değiştirici */}
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-                    <button onClick={() => setMode('write')} className={`p-2 rounded-md transition ${mode === 'write' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><PenTool size={22} /></button>
-                    <button onClick={() => setMode('choice')} className={`p-2 rounded-md transition ${mode === 'choice' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={22} /></button>
-                    <button onClick={() => setMode('flip')} className={`p-2 rounded-md transition ${mode === 'flip' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><BookOpen size={22} /></button>
+                <div className="flex gap-1 bg-slate-100 p-1.5 rounded-xl overflow-x-auto no-scrollbar">
+                    <button
+                        onClick={() => setMode('write')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${mode === 'write' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <PenTool size={20} />
+                        <span className={`text-sm font-bold ${mode === 'write' ? 'block' : 'hidden sm:block'}`}>Yaz</span>
+                    </button>
+                    <button
+                        onClick={() => setMode('choice')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${mode === 'choice' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <LayoutGrid size={20} />
+                        <span className={`text-sm font-bold ${mode === 'choice' ? 'block' : 'hidden sm:block'}`}>Seç</span>
+                    </button>
+                    <button
+                        onClick={() => setMode('flip')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${mode === 'flip' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <BookOpen size={20} />
+                        <span className={`text-sm font-bold ${mode === 'flip' ? 'block' : 'hidden sm:block'}`}>Kart</span>
+                    </button>
                 </div>
             </div>
 
-            {/* --- TOP BAR: Progress --- */}
-            {/* top-16: Header'ın hemen altında */}
-            <div className="fixed top-16 left-0 right-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
+            {/* --- PROGRESS BAR (Shrink 0) --- */}
+            <div className="bg-white border-b border-slate-100 px-4 py-2 shrink-0 z-10">
                 <div className="max-w-lg mx-auto w-full">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1.5">
                         <span>İlerleme</span>
                         <span>{currentIndex} / {initialSessionLength}</span>
                     </div>
-                    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-full"
                             style={{ width: `${progressPercentage}%` }}
@@ -358,188 +415,304 @@ export default function Learn() {
                 </div>
             </div>
 
-            {/* --- MAIN CONTENT AREA --- */}
-            {/* mt-32: Header (16) + Progress Bar (16 approx) kadar boşluk */}
-            <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-32 mb-4">
+            {/* --- MAIN CONTENT (Flex 1 - Takes remaining space) --- */}
+            <div className="flex-1 flex flex-col w-full max-w-lg mx-auto overflow-hidden relative">
 
-                <div className="flex-1 flex flex-col items-center justify-center p-6 w-full min-h-full relative">
+                {/* İçerik Alanı */}
+                <div className="flex-1 flex flex-col p-4 w-full h-full">
 
-                    {/* "Bunu Biliyorum" Butonu (Sağ Üst) */}
+                    {/* 1. ÜST AKSİYONLAR (Biliyorum Butonu) */}
                     {!showFullResult && (
-                        <button
-                            onClick={handleAlreadyKnow}
-                            className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm active:scale-95 group z-20"
-                        >
-                            <EyeOff size={14} className="group-hover:text-indigo-600" />
-                            <span className="text-xs font-bold">Biliyorum</span>
-                        </button>
-                    )}
-
-                    {/* Görsel Desteği (Varsa) */}
-                    {currentWord.image_url && !showFullResult && mode !== 'flip' && (
-                        <div className="mb-6 w-40 h-40 relative rounded-xl overflow-hidden shadow-lg border-4 border-white ring-1 ring-slate-100">
-                            <img src={currentWord.image_url} alt="Word visual" className="object-cover w-full h-full" />
-                        </div>
-                    )}
-
-                    {/* Kelime Kartı (Kart Modu Hariç) */}
-                    {mode !== 'flip' && (
-                        <div className="text-center mb-8 w-full animate-fade-in">
-
-                            <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-4 break-words leading-tight">
-                                {currentWord.meaning}
-                            </h2>
-
-                            {/* Durum ve Metadata Etiketleri (Kelime Altında) */}
-                            <div className="mb-2">
-                                <WordBadges />
-                            </div>
-
-                            <p className="text-slate-400 font-medium text-sm mt-2">İngilizcesi nedir?</p>
-                        </div>
-                    )}
-
-                    {/* --- MOD: YAZMA (Write) --- */}
-                    {mode === 'write' && !showFullResult && (
-                        <form
-                            onSubmit={(e) => { e.preventDefault(); handleAnswer(userInput.trim().toLowerCase() === currentWord.word.toLowerCase()); }}
-                            className="w-full animate-fade-in-up"
-                        >
-                            <div className="relative group">
-                                <input
-                                    ref={inputRef}
-                                    value={userInput}
-                                    onChange={(e) => setUserInput(e.target.value)}
-                                    className="w-full text-center text-2xl font-bold p-5 bg-white rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm text-slate-800 placeholder:text-slate-300"
-                                    placeholder="Buraya yazın..."
-                                    autoComplete="off"
-                                    autoCorrect="off"
-                                    autoCapitalize="off"
-                                />
-                            </div>
-                            <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => handleAnswer(false)}
-                                    className="flex-1 py-4 bg-white border-2 border-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-center gap-2"
-                                >
-                                    <SkipForward size={18} /> Bilmiyorum
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-[2] py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 active:scale-[0.98] transition hover:bg-indigo-700"
-                                >
-                                    Kontrol Et
-                                </button>
-                            </div>
-                        </form>
-                    )}
-
-                    {/* --- MOD: SEÇME (Choice) --- */}
-                    {mode === 'choice' && !showFullResult && (
-                        <div className="grid grid-cols-1 gap-3 w-full animate-fade-in-up">
-                            {isOptionsLoading || options.length < 2 ? (
-                                // SKELETON LOADING STATE
-                                [1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="w-full p-4 bg-white border-2 border-slate-100 rounded-xl flex items-center gap-4 animate-pulse">
-                                        <div className="w-10 h-10 rounded-xl bg-slate-200 shrink-0"></div>
-                                        <div className="h-6 bg-slate-200 rounded w-3/4"></div>
-                                    </div>
-                                ))
-                            ) : (
-                                options.map((opt, idx) => (
-                                    <button
-                                        key={opt.id}
-                                        onClick={() => handleAnswer(opt.id === currentWord.id)}
-                                        className="w-full p-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 text-lg hover:border-indigo-500 hover:ring-4 hover:ring-indigo-500/10 active:scale-[0.98] transition-all flex items-center gap-4 group text-left shadow-sm"
-                                    >
-                                        <span className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 border border-slate-200 flex items-center justify-center text-sm font-bold group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors shrink-0">
-                                            {idx + 1}
-                                        </span>
-                                        <span className="truncate">{opt.word}</span>
-                                    </button>
-                                ))
-                            )}
-                        </div>
-                    )}
-
-                    {/* --- MOD: KART (Flip) --- */}
-                    {mode === 'flip' && !showFullResult && (
-                        <div className="w-full min-h-[300px] perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
-                            <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
-                                {/* Ön Yüz: Türkçe */}
-                                <div className="absolute w-full h-full bg-white rounded-xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow">
-                                    <div className="text-3xl font-bold text-slate-800 mb-2">{currentWord.meaning}</div>
-                                    <div className="text-sm font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">Cevabı Gör</div>
-                                </div>
-
-                                {/* Arka Yüz: İngilizce */}
-                                <div className="absolute w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-slate-800 shadow-xl p-6">
-                                    <div className="text-3xl font-bold text-white mb-2">{currentWord.word}</div>
-                                    <p className="text-slate-400 text-sm italic text-center mb-6">"{currentWord.example_en}"</p>
-
-                                    <div className="flex gap-3 w-full" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => handleAnswer(false)} className="flex-1 py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-xl font-bold hover:bg-red-500 hover:text-white transition">Bilmiyorum</button>
-                                        <button onClick={() => handleAnswer(true)} className="flex-1 py-3 bg-green-500/20 border border-green-500/50 text-green-400 rounded-xl font-bold hover:bg-green-500 hover:text-white transition">Biliyorum</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                </div >
-            </div >
-
-            {/* --- SONUÇ OVERLAY (TAM EKRAN) --- */}
-            {
-                showFullResult && (
-                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in p-6">
-                        <div className={`p-8 rounded-xl shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
-
-                            {/* Arka Plan Efekti */}
-                            <div className={`absolute top-0 left-0 w-full h-2 ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-
-                            {/* İkon */}
-                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg ${status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                {status === 'success' ? <Check size={40} strokeWidth={4} /> : <X size={40} strokeWidth={4} />}
-                            </div>
-
-                            {/* Metin */}
-                            <h3 className={`text-2xl font-black mb-6 ${status === 'success' ? 'text-slate-800' : 'text-slate-800'}`}>
-                                {status === 'success' ? 'Harika, Doğru!' : 'Üzgünüm, Yanlış!'}
-                            </h3>
-
-                            {/* Doğru Cevap Kartı */}
-                            <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-6 relative">
-                                {/* Eski Label yerine Badge'ler */}
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <WordBadges small />
-                                </div>
-
-                                <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4">
-                                    {currentWord.word}
-                                    <button onClick={() => playAudio()} className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-110 transition">
-                                        <Volume2 size={20} />
-                                    </button>
-                                </div>
-                                <p className="text-sm text-slate-500 italic">"{currentWord.example_en}"</p>
-                                <div className="mt-3 h-px w-full bg-slate-200"></div>
-                                <p className="text-sm text-slate-400 mt-2">{currentWord.example_tr}</p>
-                            </div>
-
-                            {/* Devam Butonu - OTO ODAKLANMA */}
+                        <div className="shrink-0 flex justify-end mb-2 h-8">
                             <button
-                                onClick={nextQuestion}
-                                autoFocus
-                                className={`w-full py-4 rounded-xl font-bold text-white text-lg shadow-xl transition active:scale-95 flex items-center justify-center gap-2 ${status === 'success' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-slate-800 hover:bg-slate-900 shadow-slate-300'}`}
+                                onClick={handleAlreadyKnow}
+                                className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm active:scale-95 group"
                             >
-                                Devam Et <span className="opacity-50 text-xs font-normal">(Enter)</span>
+                                <EyeOff size={14} className="group-hover:text-indigo-600" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Biliyorum</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* 2. SORU ALANI (Esnek - Ortalanmış) */}
+                    <div className={`flex-1 flex flex-col items-center justify-center min-h-0 w-full ${mode === 'flip' ? 'pb-0' : 'pb-4'}`}>
+
+                        {/* Görsel (Varsa) */}
+                        {currentWord.image_url && !showFullResult && mode !== 'flip' && (
+                            <div className="mb-4 w-32 h-32 shrink-0 relative rounded-xl overflow-hidden shadow-md border-2 border-white ring-1 ring-slate-100">
+                                <img src={currentWord.image_url} alt="Word visual" className="object-cover w-full h-full" />
+                            </div>
+                        )}
+
+                        {/* Kelime Metni (Flip hariç) */}
+                        {mode !== 'flip' && (
+                            <div className="text-center w-full animate-fade-in flex flex-col items-center justify-center">
+                                <h2 className="text-2xl sm:text-3xl font-black text-slate-800 mb-3 break-words leading-tight px-2">
+                                    {currentWord.meaning}
+                                </h2>
+                                <div className="mb-2 scale-90 origin-center">
+                                    <WordBadges />
+                                </div>
+                                <p className="text-slate-400 font-medium text-xs uppercase tracking-wide">İngilizcesi nedir?</p>
+                            </div>
+                        )}
+
+                        {/* Flip Modu Kartı (Burada Flex-1 olarak yerleşir) */}
+                        {mode === 'flip' && !showFullResult && (
+                            <div className="w-full h-full max-h-[500px] perspective cursor-pointer group" onClick={() => setFlipped(!flipped)}>
+                                <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped ? 'rotate-y-180' : ''}`}>
+                                    {/* Ön Yüz */}
+                                    <div className="absolute w-full h-full bg-white rounded-2xl flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 shadow-lg group-hover:shadow-xl transition-shadow p-6">
+                                        <div className="text-3xl font-black text-slate-800 mb-4 text-center">{currentWord.meaning}</div>
+                                        <div className="text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full uppercase tracking-wide">Cevabı Gör</div>
+                                    </div>
+                                    {/* Arka Yüz */}
+                                    <div className="absolute w-full h-full bg-indigo-50 rounded-2xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-indigo-100 shadow-xl p-6">
+                                        <div className="flex-1 flex flex-col items-center justify-center">
+                                            <div className="text-3xl font-black text-indigo-900 mb-4 text-center">{currentWord.word}</div>
+                                            <div className="space-y-3 w-full">
+                                                <div className="bg-white/60 p-3 rounded-xl border border-indigo-100/50">
+                                                    <p className="text-indigo-800 text-sm italic text-center font-medium">"{currentWord.example_en}"</p>
+                                                </div>
+                                                <div className="bg-white/60 p-3 rounded-xl border border-indigo-100/50">
+                                                    <p className="text-indigo-600 text-sm text-center">{currentWord.example_tr}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 w-full mt-auto pt-6" onClick={(e) => e.stopPropagation()}>
+                                            <button onClick={() => handleAnswer(false)} className="flex-1 py-3 bg-white border-2 border-red-100 text-red-500 rounded-xl font-bold hover:bg-red-50 hover:border-red-200 transition text-sm shadow-sm">Bilmiyorum</button>
+                                            <button onClick={() => handleAnswer(true)} className="flex-1 py-3 bg-white border-2 border-green-100 text-green-500 rounded-xl font-bold hover:bg-green-50 hover:border-green-200 transition text-sm shadow-sm">Biliyorum</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 3. ETKİLEŞİM ALANI (Alt Kısım - Sabit) */}
+                    <div className="shrink-0 w-full mt-auto">
+
+                        {/* --- MOD: YAZMA (Write) --- */}
+                        {mode === 'write' && !showFullResult && (
+                            <div className="w-full animate-fade-in-up">
+
+
+                                <form onSubmit={checkWriteAnswer} className="w-full relative">
+                                    <div className="bg-white p-4 pr-12 rounded-xl border-2 border-slate-200 shadow-sm mb-4 relative">
+                                        {/* İpucu Butonu */}
+                                        <button
+                                            type="button"
+                                            onClick={showHint}
+                                            className={`absolute top-2 right-2 p-2 rounded-full transition-all duration-300 group/hint z-20 ${hintLevel > 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400 hover:bg-amber-50 hover:text-amber-500'}`}
+                                            title="İpucu Al"
+                                            disabled={hintLevel >= 1}
+                                        >
+                                            <Lightbulb size={18} className={`transition-all duration-300 ${hintLevel > 0 ? 'fill-amber-500' : 'group-hover/hint:fill-amber-500'}`} />
+                                        </button>
+
+                                        {(() => {
+                                            const escapedWord = currentWord.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                            const parts = currentWord.example_en.split(new RegExp(`(${escapedWord})`, 'gi'));
+                                            if (parts.length === 1) {
+                                                return (
+                                                    <div className="flex flex-col items-center gap-3 pt-2">
+                                                        <p className="text-slate-500 italic text-sm line-clamp-2">"{currentWord.example_en}"</p>
+                                                        <input
+                                                            ref={inputRef}
+                                                            value={userInput}
+                                                            onChange={(e) => { setUserInput(e.target.value); setFeedbackMsg(null); }}
+                                                            className="w-full text-center text-lg font-bold p-3 bg-slate-50 rounded-lg border-2 border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-slate-800 placeholder:text-slate-300"
+                                                            placeholder="Kelimeyi yazın..."
+                                                            autoComplete="off"
+                                                            autoCorrect="off"
+                                                            autoCapitalize="off"
+                                                        />
+                                                    </div>
+                                                );
+                                            }
+                                            const firstMatchIndex = parts.findIndex(p => p.toLowerCase() === currentWord.word.toLowerCase());
+                                            return (
+                                                <div className="text-center leading-loose">
+                                                    {parts.map((part, i) => {
+                                                        if (part.toLowerCase() === currentWord.word.toLowerCase()) {
+                                                            return (
+                                                                <input
+                                                                    key={i}
+                                                                    ref={i === firstMatchIndex ? inputRef : null}
+                                                                    value={userInput}
+                                                                    onChange={(e) => { setUserInput(e.target.value); setFeedbackMsg(null); }}
+                                                                    className="inline-block mx-1 text-center text-indigo-600 font-bold border-b-2 border-indigo-300 focus:border-indigo-600 outline-none bg-indigo-50/50 rounded px-2 py-0.5 transition-colors placeholder:text-transparent min-w-[80px]"
+                                                                    style={{ width: `${Math.max(80, part.length * 14)}px` }}
+                                                                    autoComplete="off"
+                                                                    autoCorrect="off"
+                                                                    autoCapitalize="off"
+                                                                />
+                                                            );
+                                                        }
+                                                        return <span key={i} className="text-slate-600">{part}</span>;
+                                                    })}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button type="button" onClick={() => handleAnswer(false)} className="flex-1 py-3.5 bg-white border-2 border-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-center gap-2 text-sm">
+                                            <SkipForward size={18} /> Bilmiyorum
+                                        </button>
+                                        <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 active:scale-[0.98] transition hover:bg-indigo-700 flex items-center justify-center gap-2 text-sm">
+                                            Kontrol Et
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* --- MOD: SEÇME (Choice) --- */}
+                        {mode === 'choice' && !showFullResult && (
+                            <div className="grid grid-cols-1 gap-2 w-full animate-fade-in-up">
+                                {isOptionsLoading || options.length < 2 ? (
+                                    [1, 2, 3, 4].map((i) => (
+                                        <div key={i} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl flex items-center gap-3 animate-pulse">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-200 shrink-0"></div>
+                                            <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    options.map((opt, idx) => (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => handleAnswer(opt.id === currentWord.id)}
+                                            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 text-base hover:border-indigo-500 hover:ring-2 hover:ring-indigo-500/10 active:scale-[0.98] transition-all flex items-center gap-3 group text-left shadow-sm"
+                                        >
+                                            <span className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 flex items-center justify-center text-xs font-bold group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors shrink-0">
+                                                {idx + 1}
+                                            </span>
+                                            <span className="truncate">{opt.word}</span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* --- SONUÇ OVERLAY --- */}
+            {showFullResult && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in p-6">
+                    <div className={`p-8 rounded-xl shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
+                        <div className={`absolute top-0 left-0 w-full h-2 ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ${status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            {status === 'success' ? <Check size={40} strokeWidth={4} /> : <X size={40} strokeWidth={4} />}
+                        </div>
+
+                        <h3 className={`text-2xl font-black mb-4 ${status === 'success' ? 'text-slate-800' : 'text-slate-800'}`}>
+                            {status === 'success' ? 'Harika, Doğru!' : 'Üzgünüm, Yanlış!'}
+                        </h3>
+
+                        {/* --- EXTRA FEEDBACK MESAJI (Overlay İçinde) --- */}
+                        {feedbackMsg && (
+                            <div className={`mb-4 p-3 rounded-xl text-sm font-medium border ${feedbackMsg.type === 'info'
+                                ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                : 'bg-amber-50 text-amber-700 border-amber-100'
+                                }`}>
+                                {feedbackMsg.text}
+                            </div>
+                        )}
+
+                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-6 relative">
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                <WordBadges small />
+                            </div>
+                            <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4">
+                                {currentWord.word}
+                                <button onClick={() => playAudio()} className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-110 transition">
+                                    <Volume2 size={20} />
+                                </button>
+                            </div>
+                            <p className="text-sm text-slate-500 italic">"{currentWord.example_en}"</p>
+                            <div className="mt-3 h-px w-full bg-slate-200"></div>
+                            <p className="text-sm text-slate-400 mt-2">{currentWord.example_tr}</p>
+                        </div>
+                        <button
+                            onClick={nextQuestion}
+                            autoFocus
+                            className={`w-full py-4 rounded-xl font-bold text-white text-lg shadow-xl transition active:scale-95 flex items-center justify-center gap-2 ${status === 'success' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-slate-800 hover:bg-slate-900 shadow-slate-300'}`}
+                        >
+                            Devam Et <span className="opacity-50 text-xs font-normal">(Enter)</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+            {/* --- PREMIUM İPUCU MODAL (MOVED TO ROOT) --- */}
+            {hintLevel > 0 && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-indigo-900/40 backdrop-blur-[4px]"
+                        onClick={() => setHintLevel(0)}
+                    ></div>
+
+                    {/* Modal Card */}
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-indigo-50">
+                        {/* Header Pattern */}
+                        <div className="h-24 bg-amber-50 relative overflow-hidden flex items-center justify-center border-b border-amber-100">
+                            <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-200 via-amber-50 to-transparent"></div>
+                            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-amber-100 flex items-center justify-center transform rotate-3 relative z-10">
+                                <Lightbulb size={32} className="fill-amber-400 text-amber-500" />
+                            </div>
+                        </div>
+
+                        <div className="p-6 pt-4 text-center">
+                            <h3 className="text-lg font-black text-slate-700 uppercase tracking-wide mb-1">İpucu</h3>
+                            <div className="w-10 h-1 bg-amber-200 rounded-full mx-auto mb-6"></div>
+
+                            {currentWord.definition && (
+                                <p className="text-slate-600 text-lg font-medium leading-relaxed mb-8">
+                                    "{currentWord.definition}"
+                                </p>
+                            )}
+
+                            <button
+                                onClick={() => setHintLevel(0)}
+                                className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 active:scale-95 transition-transform hover:bg-indigo-700"
+                            >
+                                Anladım
                             </button>
                         </div>
                     </div>
-                )
-            }
-
+                </div>
+            )}
+            {/* --- EXIT CONFIRMATION MODAL --- */}
+            {showExitModal && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowExitModal(false)}></div>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 p-6 text-center">
+                        <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <LogOut size={32} />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 mb-2">Çıkmak İstediğine Emin misin?</h3>
+                        <p className="text-slate-500 font-medium mb-6">
+                            Şu an çok iyi gidiyorsun! Oturumu yarıda bırakırsan serini bozabilirsin. Biraz daha devam etmeye ne dersin?
+                        </p>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => setShowExitModal(false)}
+                                className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 active:scale-95 transition-transform hover:bg-indigo-700"
+                            >
+                                Öğrenmeye Devam Et
+                            </button>
+                            <Link href="/dashboard" className="block w-full">
+                                <button className="w-full py-3.5 bg-white border-2 border-slate-100 text-slate-400 rounded-xl font-bold text-lg hover:bg-slate-50 hover:text-slate-600 transition">
+                                    Pes Ediyorum
+                                </button>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

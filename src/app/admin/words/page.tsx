@@ -2,14 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { Vocabulary } from '@/types';
-import { Search, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, X, Image as ImageIcon, Volume2, Book, Type, List, MoreHorizontal } from 'lucide-react';
-import Card from '@/components/Card';
+import { Search, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, X, Image as ImageIcon, Volume2, Book, Type, List, MoreHorizontal, ChevronUp, ChevronDown, Filter } from 'lucide-react';
 import { clsx } from 'clsx';
+import ConfirmModal from '@/components/admin/ConfirmModal';
+import AlertModal from '@/components/admin/AlertModal';
 
 export default function AdminWordsPage() {
     const [words, setWords] = useState<Vocabulary[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Filter & Sort State
     const [searchQuery, setSearchQuery] = useState('');
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [levelFilter, setLevelFilter] = useState('all');
+    const [sortColumn, setSortColumn] = useState('id');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
     // Pagination State
     const [page, setPage] = useState(1);
@@ -21,6 +28,34 @@ export default function AdminWordsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingWord, setEditingWord] = useState<Vocabulary | null>(null);
     const [activeTab, setActiveTab] = useState<'basic' | 'examples' | 'media' | 'extra'>('basic');
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+
+    // Custom Modals State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'warning' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        type: 'danger'
+    });
+
+    const [alertModal, setAlertModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info'
+    });
 
     // Form Data
     const initialFormData: Partial<Vocabulary> = {
@@ -43,17 +78,21 @@ export default function AdminWordsPage() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            setPage(1); // Reset to page 1 on search
+            setPage(1); // Reset to page 1 on search/filter change
             fetchWords(1);
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchQuery]);
+    }, [searchQuery, typeFilter, levelFilter, sortColumn, sortDirection]);
 
     const fetchWords = async (pageNum: number) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (searchQuery) params.append('q', searchQuery);
+            if (typeFilter !== 'all') params.append('type', typeFilter);
+            if (levelFilter !== 'all') params.append('level', levelFilter);
+            params.append('sort', sortColumn);
+            params.append('order', sortDirection);
             params.append('page', pageNum.toString());
             params.append('limit', limit.toString());
 
@@ -69,6 +108,15 @@ export default function AdminWordsPage() {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSort = (column: string) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('desc'); // Default to desc for new column
         }
     };
 
@@ -105,24 +153,58 @@ export default function AdminWordsPage() {
             setEditingWord(null);
             setFormData(initialFormData);
             fetchWords(page); // Refresh current page
+
+            setAlertModal({
+                isOpen: true,
+                title: 'Başarılı',
+                message: editingWord ? 'Kelime başarıyla güncellendi.' : 'Kelime başarıyla eklendi.',
+                type: 'success'
+            });
         } catch (error) {
-            alert('Bir hata oluştu.');
+            setAlertModal({
+                isOpen: true,
+                title: 'Hata',
+                message: 'Bir hata oluştu.',
+                type: 'error'
+            });
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Bu kelimeyi silmek istediğinize emin misiniz?')) return;
-        try {
-            const res = await fetch('/api/admin/words', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id }),
-            });
-            if (!res.ok) throw new Error('Delete failed');
-            fetchWords(page);
-        } catch (error) {
-            alert('Silme işlemi başarısız.');
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Kelimeyi Sil',
+            message: 'Bu kelimeyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+            type: 'danger',
+            onConfirm: async () => {
+                setDeletingId(id);
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                try {
+                    const res = await fetch('/api/admin/words', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id }),
+                    });
+                    if (!res.ok) throw new Error('Delete failed');
+                    fetchWords(page);
+                    setAlertModal({
+                        isOpen: true,
+                        title: 'Başarılı',
+                        message: 'Kelime başarıyla silindi.',
+                        type: 'success'
+                    });
+                } catch (error) {
+                    setAlertModal({
+                        isOpen: true,
+                        title: 'Hata',
+                        message: 'Silme işlemi başarısız.',
+                        type: 'error'
+                    });
+                } finally {
+                    setDeletingId(null);
+                }
+            }
+        });
     };
 
     const openEditModal = (word: Vocabulary) => {
@@ -147,21 +229,21 @@ export default function AdminWordsPage() {
         <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col pb-20 md:pb-0">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white hidden md:block">Kelime Yönetimi</h1>
-                    <p className="text-sm text-gray-500 mt-1 hidden md:block">Toplam {totalItems} kelime</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Kelime Yönetimi</h1>
+                    <p className="text-sm text-slate-500 mt-1">Toplam {totalItems} kelime</p>
                 </div>
                 <button
                     onClick={openCreateModal}
-                    className="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-sm"
+                    className="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-sm font-medium"
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     Yeni Kelime
                 </button>
             </div>
 
-            <Card className="flex-1 flex flex-col overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800">
-                <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 shrink-0">
-                    <div className="relative max-w-md">
+            <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-xl border border-slate-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
@@ -171,6 +253,42 @@ export default function AdminWordsPage() {
                             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition dark:text-white"
                         />
                     </div>
+                    <div className="flex gap-2">
+                        <div className="relative">
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value)}
+                                className="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm dark:text-white cursor-pointer"
+                            >
+                                <option value="all">Tüm Türler</option>
+                                <option value="noun">İsim</option>
+                                <option value="verb">Fiil</option>
+                                <option value="adjective">Sıfat</option>
+                                <option value="adverb">Zarf</option>
+                                <option value="preposition">Edat</option>
+                                <option value="conjunction">Bağlaç</option>
+                                <option value="phrasal verb">Deyimsel Fiil</option>
+                                <option value="idiom">Deyim</option>
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                        <div className="relative">
+                            <select
+                                value={levelFilter}
+                                onChange={(e) => setLevelFilter(e.target.value)}
+                                className="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm dark:text-white cursor-pointer"
+                            >
+                                <option value="all">Tüm Seviyeler</option>
+                                <option value="A1">A1</option>
+                                <option value="A2">A2</option>
+                                <option value="B1">B1</option>
+                                <option value="B2">B2</option>
+                                <option value="C1">C1</option>
+                                <option value="C2">C2</option>
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Desktop Table View */}
@@ -178,10 +296,42 @@ export default function AdminWordsPage() {
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelime</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Anlam</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tür / Seviye</th>
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                                    onClick={() => handleSort('id')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        ID
+                                        {sortColumn === 'id' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                                    onClick={() => handleSort('word')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Kelime
+                                        {sortColumn === 'word' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                                    onClick={() => handleSort('meaning')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Anlam
+                                        {sortColumn === 'meaning' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                                    onClick={() => handleSort('type')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Tür / Seviye
+                                        {sortColumn === 'type' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    </div>
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detaylar</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
                             </tr>
@@ -239,7 +389,8 @@ export default function AdminWordsPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(word.id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    disabled={deletingId === word.id}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -295,7 +446,8 @@ export default function AdminWordsPage() {
                                     </button>
                                     <button
                                         onClick={() => handleDelete(word.id)}
-                                        className="px-3 py-2 bg-red-50 text-red-600 rounded-lg active:scale-95 transition"
+                                        disabled={deletingId === word.id}
+                                        className="px-3 py-2 bg-red-50 text-red-600 rounded-lg active:scale-95 transition disabled:opacity-50"
                                     >
                                         <Trash2 className="w-5 h-5" />
                                     </button>
@@ -327,12 +479,12 @@ export default function AdminWordsPage() {
                         </button>
                     </div>
                 </div>
-            </Card>
+            </div>
 
             {/* Add/Edit Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full h-[90vh] flex flex-col animate-scale-up">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col animate-scale-up">
                         {/* Modal Header */}
                         <div className="flex justify-between items-center p-4 md:p-6 border-b border-gray-100 dark:border-gray-700 shrink-0">
                             <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
@@ -560,6 +712,25 @@ export default function AdminWordsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+            />
+
+            {/* Alert Modal */}
+            <AlertModal
+                isOpen={alertModal.isOpen}
+                onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                title={alertModal.title}
+                message={alertModal.message}
+                type={alertModal.type}
+            />
         </div>
     );
 }

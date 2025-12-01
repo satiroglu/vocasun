@@ -12,7 +12,11 @@ import QuizMode from './word-card/QuizMode';
 
 type TabMode = 'card' | 'write' | 'quiz';
 
-export default function DynamicWordCard() {
+interface DynamicWordCardProps {
+    disableAudio?: boolean;
+}
+
+export default function DynamicWordCard({ disableAudio = false }: DynamicWordCardProps) {
     const { words, loading } = useDailyWords();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [activeTab, setActiveTab] = useState<TabMode>('card');
@@ -30,6 +34,7 @@ export default function DynamicWordCard() {
     }, [isCompleted]);
 
     const playAudio = () => {
+        if (disableAudio) return; // Audio disabled
         if (!currentWord) return;
         if (currentWord.audio_url) {
             new Audio(currentWord.audio_url).play().catch(() => { });

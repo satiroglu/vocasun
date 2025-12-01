@@ -30,6 +30,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 @layer utilities {
 
   /* Animasyon optimizasyonları - GPU hızlandırması */

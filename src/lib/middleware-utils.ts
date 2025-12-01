@@ -62,5 +62,26 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url);
     }
 
+    // 3. Admin Route Protection
+    if (path.startsWith('/admin') || path.startsWith('/api/admin')) {
+        if (!user) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/login';
+            return NextResponse.redirect(url);
+        }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile?.is_admin) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/dashboard';
+            return NextResponse.redirect(url);
+        }
+    }
+
     return response;
 }

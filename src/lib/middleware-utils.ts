@@ -42,7 +42,7 @@ export async function updateSession(request: NextRequest) {
     const path = request.nextUrl.pathname;
 
     // Public Routes
-    const publicRoutes = ['/', '/login', '/register', '/auth/callback', '/forgot-password', '/update-password'];
+    const publicRoutes = ['/', '/login', '/register', '/auth/callback', '/forgot-password', '/update-password', '/changelog', '/about', '/privacy', '/terms', '/contact', '/kvkk', '/features'];
     const isPublicRoute = publicRoutes.some(route => path === route || path.startsWith(route + '/'));
 
     // Yönlendirme Mantığı (Hala gerekli ama artık daha hızlı çalışacak)

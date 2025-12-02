@@ -32,8 +32,8 @@ export default function HelpPage() {
                                     <h3 className="text-lg font-bold text-slate-900">E-posta Desteği</h3>
                                     <p className="text-slate-500 text-sm mt-1">Bize her zaman e-posta gönderebilirsiniz. En kısa sürede dönüş yapacağız.</p>
                                 </div>
-                                <a href="mailto:destek@vocasun.com" className="inline-block w-full text-center px-4 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors text-sm">
-                                    destek@vocasun.com
+                                <a href="mailto:hello@vocasun.com" className="inline-block w-full text-center px-4 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors text-sm">
+                                    hello@vocasun.com
                                 </a>
                             </div>
 

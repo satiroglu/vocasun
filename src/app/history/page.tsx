@@ -381,19 +381,36 @@ export default function History() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-12 sm:py-24 bg-white rounded-xl border border-dashed border-slate-200">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-slate-300 shadow-sm">
-                            <Search className="w-8 h-8 sm:w-10 sm:h-10" />
-                        </div>
-                        <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-2">Sonuç bulunamadı</h3>
-                        <p className="text-slate-500 max-w-xs mx-auto text-sm sm:text-base">Aradığınız kriterlere uygun kelime bulunmamaktadır. Filtreleri değiştirmeyi deneyin.</p>
-                        <button
-                            onClick={() => { setSearchTerm(''); setFilter('all'); setSelectedLevels([]); setSelectedTypes([]); }}
-                            className="mt-4 sm:mt-6 px-5 py-2.5 sm:px-6 sm:py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-100 transition-colors text-sm sm:text-base"
-                        >
-                            Filtreleri Temizle
-                        </button>
-                    </div>
+                    <>
+                        {stats?.total === 0 ? (
+                            <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100">
+                                <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300">
+                                        <BookOpen size={32} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-700 mb-2">Henüz kelime çalışılmadı</h3>
+                                    <p className="text-slate-500 mb-6 max-w-xs mx-auto">Öğrenme yolculuğuna başlamak için harika bir gün!</p>
+                                    <Link href="/learn" className="inline-flex items-center gap-2 text-indigo-600 font-bold hover:text-indigo-700 hover:underline">
+                                        İlk kelimeni öğren <ChevronRight size={16} />
+                                    </Link>
+                                </div>
+                            </section>
+                        ) : (
+                            <div className="text-center py-12 sm:py-24 bg-white rounded-xl border border-dashed border-slate-200">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-slate-300 shadow-sm">
+                                    <Search className="w-8 h-8 sm:w-10 sm:h-10" />
+                                </div>
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-2">Sonuç bulunamadı</h3>
+                                <p className="text-slate-500 max-w-xs mx-auto text-sm sm:text-base">Aradığınız kriterlere uygun kelime bulunmamaktadır. Filtreleri değiştirmeyi deneyin.</p>
+                                <button
+                                    onClick={() => { setSearchTerm(''); setFilter('all'); setSelectedLevels([]); setSelectedTypes([]); }}
+                                    className="mt-4 sm:mt-6 px-5 py-2.5 sm:px-6 sm:py-3 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-100 transition-colors text-sm sm:text-base"
+                                >
+                                    Filtreleri Temizle
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* PAGINATION */}

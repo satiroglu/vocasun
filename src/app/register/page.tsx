@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { Eye, EyeOff, ArrowLeft, Mail, Check, X, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, Check, X, Loader2, FileText, Shield, FileCheck } from 'lucide-react';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import Logo from '@/components/Logo';
+import Modal from '@/components/Modal';
+import PrivacyContent from '@/components/legal/PrivacyContent';
+import TermsContent from '@/components/legal/TermsContent';
+import KvkkContent from '@/components/legal/KvkkContent';
 
 export default function Register() {
     const [loading, setLoading] = useState(false);
@@ -26,6 +30,7 @@ export default function Register() {
 
     // Legal Agreements State
     const [agreements, setAgreements] = useState(false);
+    const [activeModal, setActiveModal] = useState<'terms' | 'privacy' | 'kvkk' | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -360,7 +365,33 @@ export default function Register() {
                                     className="mt-1 w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer shrink-0"
                                 />
                                 <label htmlFor="agreements" className="text-sm text-slate-600 cursor-pointer select-none leading-relaxed">
-                                    <span className="text-indigo-600 hover:underline font-medium">Kullanıcı Sözleşmesi</span>, <span className="text-indigo-600 hover:underline font-medium">Gizlilik Politikası</span> ve <span className="text-indigo-600 hover:underline font-medium">KVKK Aydınlatma Metni</span>&apos;ni okudum, anladım ve kabul ediyorum.
+                                    <span
+                                        className="text-indigo-600 hover:underline font-medium"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setActiveModal('terms');
+                                        }}
+                                    >
+                                        Kullanıcı Sözleşmesi
+                                    </span>,{' '}
+                                    <span
+                                        className="text-indigo-600 hover:underline font-medium"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setActiveModal('privacy');
+                                        }}
+                                    >
+                                        Gizlilik Politikası
+                                    </span> ve{' '}
+                                    <span
+                                        className="text-indigo-600 hover:underline font-medium"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setActiveModal('kvkk');
+                                        }}
+                                    >
+                                        KVKK Aydınlatma Metni
+                                    </span>&apos;ni okudum, anladım ve kabul ediyorum.
                                 </label>
                             </div>
                         </div>
@@ -381,6 +412,43 @@ export default function Register() {
                     </p>
                 </div>
             </div>
+
+            {/* Modals */}
+            <Modal
+                isOpen={activeModal === 'terms'}
+                onClose={() => setActiveModal(null)}
+                title="Kullanıcı Sözleşmesi"
+                icon={<FileText size={24} />}
+                align="left"
+            >
+                <div className="max-h-[60vh] overflow-y-auto pr-2 text-sm">
+                    <TermsContent />
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={activeModal === 'privacy'}
+                onClose={() => setActiveModal(null)}
+                title="Gizlilik Politikası"
+                icon={<Shield size={24} />}
+                align="left"
+            >
+                <div className="max-h-[60vh] overflow-y-auto pr-2 text-sm">
+                    <PrivacyContent />
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={activeModal === 'kvkk'}
+                onClose={() => setActiveModal(null)}
+                title="KVKK Aydınlatma Metni"
+                icon={<FileCheck size={24} />}
+                align="left"
+            >
+                <div className="max-h-[60vh] overflow-y-auto pr-2 text-sm">
+                    <KvkkContent />
+                </div>
+            </Modal>
         </div>
     );
 }

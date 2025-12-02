@@ -90,7 +90,7 @@ export default function Hero() {
                     {/* Info Text (Moved Below) */}
                     <div className="mt-6 text-center">
                         <span className="text-sm font-medium text-slate-400/80 tracking-wide">
-                            Her Gün 5 Yeni Kelime
+                            Günlük 5 kelime çalışmanı tamamla!
                         </span>
                     </div>
                 </div>

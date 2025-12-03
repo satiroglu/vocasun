@@ -40,7 +40,7 @@ describe('Login Page', () => {
     it('renders login form correctly', () => {
         render(<Login />);
         // DÜZELTME: Label yerine Placeholder kullanıyoruz
-        expect(screen.getByPlaceholderText('ornek@email.com')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('adsoyad@email.com')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Giriş Yap/i })).toBeInTheDocument();
     });
@@ -54,7 +54,7 @@ describe('Login Page', () => {
         render(<Login />);
 
         // DÜZELTME: Placeholder ile seçim
-        fireEvent.change(screen.getByPlaceholderText('ornek@email.com'), { target: { value: 'test@vocasun.com' } });
+        fireEvent.change(screen.getByPlaceholderText('adsoyad@email.com'), { target: { value: 'test@vocasun.com' } });
         fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'wrongpass' } });
         fireEvent.click(screen.getByRole('button', { name: /Giriş Yap/i }));
 
@@ -75,7 +75,7 @@ describe('Login Page', () => {
         render(<Login />);
 
         // DÜZELTME: Placeholder ile seçim
-        fireEvent.change(screen.getByPlaceholderText('ornek@email.com'), { target: { value: 'test@vocasun.com' } });
+        fireEvent.change(screen.getByPlaceholderText('adsoyad@email.com'), { target: { value: 'test@vocasun.com' } });
         fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'correctpass' } });
         fireEvent.click(screen.getByRole('button', { name: /Giriş Yap/i }));
 

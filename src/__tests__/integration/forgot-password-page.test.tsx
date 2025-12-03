@@ -18,7 +18,7 @@ describe('Forgot Password Page', () => {
 
         render(<ForgotPassword />);
 
-        const emailInput = screen.getByPlaceholderText('ornek@email.com');
+        const emailInput = screen.getByPlaceholderText('adsoyad@email.com');
         fireEvent.change(emailInput, { target: { value: 'test@vocasun.com' } });
 
         fireEvent.click(screen.getByRole('button', { name: /Bağlantı Gönder/i }));

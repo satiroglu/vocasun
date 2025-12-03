@@ -29,8 +29,8 @@ describe('Register Page', () => {
     it('renders register form', () => {
         render(<Register />);
         // Placeholder'lar ile inputları kontrol et
-        expect(screen.getByPlaceholderText('Ahmet')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('ahmetyilmaz')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Adınız')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('adsoyad')).toBeInTheDocument();
     });
 
     it('validates required fields and shows error for invalid inputs', async () => {
@@ -38,12 +38,12 @@ describe('Register Page', () => {
 
         // 1. Hatalı Kullanıcı Adı (Türkçe karakter içeriyor)
         // Senin kodundaki regex (/^[a-zA-Z0-9]+$/) Türkçe karakterleri KABUL ETMEZ.
-        fireEvent.change(screen.getByPlaceholderText('ahmetyilmaz'), { target: { value: 'ahmetğ' } });
+        fireEvent.change(screen.getByPlaceholderText('adsoyad'), { target: { value: 'ahmetğ' } });
 
         // Diğer alanları doldur
-        fireEvent.change(screen.getByPlaceholderText('Ahmet'), { target: { value: 'Test' } });
-        fireEvent.change(screen.getByPlaceholderText('Yılmaz'), { target: { value: 'User' } });
-        fireEvent.change(screen.getByPlaceholderText('ornek@email.com'), { target: { value: 'test@test.com' } });
+        fireEvent.change(screen.getByPlaceholderText('Adınız'), { target: { value: 'Test' } });
+        fireEvent.change(screen.getByPlaceholderText('Soyadınız'), { target: { value: 'User' } });
+        fireEvent.change(screen.getByPlaceholderText('adsoyad@email.com'), { target: { value: 'test@test.com' } });
         fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
 
         // Sözleşmeyi onayla
@@ -61,10 +61,10 @@ describe('Register Page', () => {
         render(<Register />);
 
         // Formu düzgün doldur
-        fireEvent.change(screen.getByPlaceholderText('Ahmet'), { target: { value: 'Test' } });
-        fireEvent.change(screen.getByPlaceholderText('Yılmaz'), { target: { value: 'User' } });
-        fireEvent.change(screen.getByPlaceholderText('ahmetyilmaz'), { target: { value: 'testuser1' } }); // Geçerli kullanıcı adı
-        fireEvent.change(screen.getByPlaceholderText('ornek@email.com'), { target: { value: 'test@test.com' } });
+        fireEvent.change(screen.getByPlaceholderText('Adınız'), { target: { value: 'Test' } });
+        fireEvent.change(screen.getByPlaceholderText('Soyadınız'), { target: { value: 'User' } });
+        fireEvent.change(screen.getByPlaceholderText('adsoyad'), { target: { value: 'testuser1' } }); // Geçerli kullanıcı adı
+        fireEvent.change(screen.getByPlaceholderText('adsoyad@email.com'), { target: { value: 'test@test.com' } });
         fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
 
         // AMA Sözleşmeyi işaretleme!
@@ -81,10 +81,10 @@ describe('Register Page', () => {
         render(<Register />);
 
         // Formu doldur
-        fireEvent.change(screen.getByPlaceholderText('Ahmet'), { target: { value: 'Test' } });
-        fireEvent.change(screen.getByPlaceholderText('Yılmaz'), { target: { value: 'User' } });
-        fireEvent.change(screen.getByPlaceholderText('ahmetyilmaz'), { target: { value: 'testuser1' } });
-        fireEvent.change(screen.getByPlaceholderText('ornek@email.com'), { target: { value: 'test@test.com' } });
+        fireEvent.change(screen.getByPlaceholderText('Adınız'), { target: { value: 'Test' } });
+        fireEvent.change(screen.getByPlaceholderText('Soyadınız'), { target: { value: 'User' } });
+        fireEvent.change(screen.getByPlaceholderText('adsoyad'), { target: { value: 'testuser1' } });
+        fireEvent.change(screen.getByPlaceholderText('adsoyad@email.com'), { target: { value: 'test@test.com' } });
         fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
 
         // Sözleşmeyi onayla

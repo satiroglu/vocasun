@@ -78,7 +78,7 @@ export default function ForgotPassword() {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="ornek@email.com"
+                                placeholder="adsoyad@email.com"
                                 icon={<Mail size={20} />}
                             />
 

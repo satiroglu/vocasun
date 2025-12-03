@@ -16,6 +16,8 @@ interface HistoryItem {
         type: string;
         level: string;
         audio_url?: string;
+        audio_us?: string | null;
+        audio_uk?: string | null;
         example_en: string;
         example_tr: string;
     }
@@ -45,7 +47,7 @@ async function fetchHistory({ userId, page, itemsPerPage, filter, types, levels,
             updated_at,
             is_mastered,
             repetitions,
-            vocabulary!inner ( id, word, meaning, audio_url, type, level, example_en, example_tr )
+            vocabulary!inner ( id, word, meaning, audio_url, audio_us, audio_uk, type, level, example_en, example_tr )
         `, { count: 'exact' })
         .eq('user_id', userId)
         .order('updated_at', { ascending: false });

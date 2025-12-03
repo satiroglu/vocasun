@@ -28,6 +28,8 @@ export interface Vocabulary {
     example_en: string;
     example_tr: string;
     audio_url?: string;
+    audio_us?: string | null;
+    audio_uk?: string | null;
     image_url?: string;
     definition?: string;
     phonetic_ipa?: string;

@@ -11,6 +11,8 @@ interface RecentWord {
         word: string;
         meaning: string;
         audio_url?: string;
+        audio_us?: string | null;
+        audio_uk?: string | null;
         example_en: string;
         example_tr: string;
     }
@@ -50,7 +52,7 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
             .select(`
                 updated_at,
                 is_mastered,
-                vocabulary ( word, meaning, audio_url, example_en, example_tr )
+                vocabulary ( word, meaning, audio_url, audio_us, audio_uk, example_en, example_tr )
             `)
             .eq('user_id', userId)
             .order('updated_at', { ascending: false })

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { BookOpen, Target, Languages, List, CheckCircle, TrendingUp, Save } from 'lucide-react';
+import { BookOpen, Target, Languages, List, CheckCircle, TrendingUp, Save, Volume2 } from 'lucide-react';
 import Button from '@/components/Button';
 
 interface LearningOptionsProps {
@@ -17,7 +17,7 @@ interface LearningOptionsProps {
 export default function LearningOptions({ userData, showMessage }: LearningOptionsProps) {
     const [formData, setFormData] = useState(userData);
     const [saving, setSaving] = useState(false);
-    const [vocabSets, setVocabSets] = useState<any[]>([]);
+    const [vocabSets, setVocabSets] = useState<{ id: number; title: string; slug: string; description: string | null }[]>([]);
 
     React.useEffect(() => {
         const fetchVocabSets = async () => {
@@ -28,14 +28,14 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
 
             if (data) {
                 setVocabSets(data);
-                // Eğer sadece 1 tane aktif liste varsa, onu otomatik seç
-                if (data.length === 1) {
-                    setFormData(prev => ({ ...prev, preferredWordList: data[0].slug }));
+                // Eğer kullanıcıda kayıtlı bir liste yoksa ve 'general' listesi varsa onu seç
+                if (!userData.preferredWordList && data.find(s => s.slug === 'general')) {
+                    setFormData(prev => ({ ...prev, preferredWordList: 'general' }));
                 }
             }
         };
         fetchVocabSets();
-    }, []);
+    }, [userData.preferredWordList]);
 
     const saveLearning = async () => {
         setSaving(true);
@@ -44,14 +44,16 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                 .from('profiles')
                 .update({
                     daily_goal: formData.dailyGoal,
-                    preferred_word_list: formData.preferredWordList,
-                    difficulty_level: formData.difficultyLevel
+                    preferred_word_list: [formData.preferredWordList], // Array olarak gönderiyoruz
+                    difficulty_level: formData.difficultyLevel,
+                    accent_preference: formData.accent
                 })
                 .eq('id', formData.id);
             if (error) throw error;
             showMessage('success', 'Öğrenim ayarları kaydedildi.');
-        } catch (error: any) {
-            showMessage('error', error.message);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
+            showMessage('error', errorMessage);
         } finally {
             setSaving(false);
         }
@@ -90,28 +92,34 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                 <p className="text-xs text-indigo-700 ml-1">Her gün {formData.dailyGoal} kelime çalışmayı hedefle.</p>
             </div>
 
-            {/* Aksan Seçimi - YAKINDA */}
-            <div className="mb-6 relative">
-                <div className="flex items-center gap-2 mb-3">
-                    <Languages size={20} className="text-slate-400" />
-                    <label className="block text-sm font-bold text-slate-400">İngiliz/Amerikan Aksanı</label>
-                    <span className="ml-auto px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md">YAKINDA</span>
+            {/* Aksan Seçimi */}
+            <div className="mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                    <Languages size={20} className="text-indigo-600" />
+                    <label className="block text-sm font-bold text-slate-800">Aksan Tercihi</label>
                 </div>
-                <div className="grid grid-cols-2 gap-3 opacity-50 pointer-events-none">
+                <p className="text-xs text-slate-500 mb-3 ml-7">Kelime telaffuzlarında duymak istediğin aksanı seç.</p>
+                <div className="grid grid-cols-2 gap-3">
                     {[
-                        { value: 'american', label: 'Amerikan', flag: '🇺🇸' },
-                        { value: 'british', label: 'İngiliz', flag: '🇬🇧' },
+                        { value: 'US', label: 'Amerikan' },
+                        { value: 'UK', label: 'İngiliz' },
                     ].map(accent => (
                         <div
                             key={accent.value}
-                            className={`p-4 rounded-xl border-2 ${formData.accent === accent.value
-                                ? 'border-indigo-500 bg-indigo-50/50'
-                                : 'border-slate-200'
+                            onClick={() => setFormData({ ...formData, accent: accent.value })}
+                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.accent === accent.value
+                                ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                                : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
                                 }`}
                         >
-                            <div className="flex items-center gap-3">
-                                <span className="text-3xl">{accent.flag}</span>
-                                <div className="font-bold text-slate-800 text-sm">{accent.label}</div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-full ${formData.accent === accent.value ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                                        <Volume2 size={20} />
+                                    </div>
+                                    <div className="font-bold text-slate-800 text-sm">{accent.label}</div>
+                                </div>
+                                {formData.accent === accent.value && <CheckCircle size={20} className="text-indigo-600" />}
                             </div>
                         </div>
                     ))}
@@ -120,10 +128,11 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
 
             {/* Kelime Listesi Seçimi */}
             <div className="mb-6 relative">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-1">
                     <List size={20} className="text-indigo-600" />
                     <label className="block text-sm font-bold text-slate-800">Çalışılacak Kelime Listesi</label>
                 </div>
+                <p className="text-xs text-slate-500 mb-3 ml-7">Günlük çalışmalarında karşına çıkacak kelime havuzunu belirle.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* DB'den gelen aktif listeler */}
                     {vocabSets.map(set => (
@@ -165,25 +174,33 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                 </div>
             </div>
 
-            {/* Kelime Listelerim - YAKINDA */}
+            {/* Kelime Listelerim - Bilgilendirme */}
             <div className="mb-6 relative">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-1">
                     <BookOpen size={20} className="text-slate-400" />
                     <label className="block text-sm font-bold text-slate-400">Kelime Listelerim</label>
                     <span className="ml-auto px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md">YAKINDA</span>
                 </div>
-                <div className="p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 opacity-50">
-                    <p className="text-sm text-slate-500 text-center">Kendi kelime listelerini oluştur ve yönet</p>
+                <p className="text-xs text-slate-500 mb-3 ml-7">Kendi oluşturduğun özel kelime listelerini buradan yönet.</p>
+                <div className="p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 opacity-50 pointer-events-none">
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3 text-indigo-600">
+                            <List size={24} />
+                        </div>
+                        <h4 className="font-bold text-slate-800 mb-1">Kendi Listeni Oluştur</h4>
+                        <p className="text-sm text-slate-500 max-w-xs">Çok yakında kendi kelime listelerini oluşturup arkadaşlarınla paylaşabileceksin.</p>
+                    </div>
                 </div>
             </div>
 
             {/* Zorluk Seviyesi - YAKINDA */}
             <div className="mb-6 relative">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-1">
                     <TrendingUp size={20} className="text-slate-400" />
                     <label className="block text-sm font-bold text-slate-400">Zorluk Seviyesi</label>
                     <span className="ml-auto px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md">YAKINDA</span>
                 </div>
+                <p className="text-xs text-slate-500 mb-3 ml-7">Karşına çıkacak kelimelerin zorluk derecesini ayarla.</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 opacity-50 pointer-events-none">
                     {[
                         { value: 'beginner', label: 'Başlangıç', color: 'green' },

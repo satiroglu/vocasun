@@ -108,7 +108,7 @@ export default function Contact() {
                                             <input
                                                 type="email"
                                                 className="w-full px-5 py-4 rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400"
-                                                placeholder="ornek@email.com"
+                                                placeholder="adsoyad@email.com"
                                             />
                                         </div>
 

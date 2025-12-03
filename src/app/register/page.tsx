@@ -255,14 +255,14 @@ export default function Register() {
                             name="firstName"
                             required
                             onChange={handleChange}
-                            placeholder="Ahmet"
+                            placeholder="Adınız"
                         />
                         <Input
                             label="Soyad"
                             name="lastName"
                             required
                             onChange={handleChange}
-                            placeholder="Yılmaz"
+                            placeholder="Soyadınız"
                         />
 
                         <div className="relative">
@@ -271,7 +271,7 @@ export default function Register() {
                                 name="username"
                                 required
                                 onChange={handleChange}
-                                placeholder="ahmetyilmaz"
+                                placeholder="adsoyad"
                                 className={usernameAvailable === true ? "border-green-500 focus:border-green-500 focus:ring-green-200" : usernameAvailable === false ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}
                             />
                             <div className="absolute right-3 top-[38px]">
@@ -308,7 +308,7 @@ export default function Register() {
                                 type="email"
                                 required
                                 onChange={handleChange}
-                                placeholder="ornek@email.com"
+                                placeholder="adsoyad@email.com"
                                 className={emailAvailable === true ? "border-green-500 focus:border-green-500 focus:ring-green-200" : emailAvailable === false ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}
                             />
                             <div className="absolute right-3 top-[38px]">

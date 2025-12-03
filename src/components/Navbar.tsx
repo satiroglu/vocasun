@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import {
     Sun, Menu, X, LogOut,
-    LayoutDashboard, BookOpen, Trophy, Settings, HelpCircle, User
+    LayoutDashboard, BookOpen, Trophy, Settings, HelpCircle, User, Sparkles
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { useProfile } from '@/hooks/useProfile';
@@ -58,8 +58,9 @@ export default function Navbar() {
     const mainNavLinks = [
         { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Öğren', href: '/learn', icon: BookOpen },
-        { name: 'Liderlik', href: '/leaderboard', icon: Trophy },
         { name: 'Kelimelerim', href: '/history', icon: BookOpen }, // History -> Kelimelerim olarak güncellendi
+        { name: 'Liderlik', href: '/leaderboard', icon: Trophy },
+        // { name: 'Cümle Kur', href: '#', icon: Sparkles, badge: 'YAKINDA', disabled: true }, // daha sonra aktifleştirilecek
     ];
 
     // Kullanıcı Menüsü Linkleri (Desktop'ta dropdown içinde, Mobil'de listede)
@@ -93,18 +94,32 @@ export default function Navbar() {
                         <div className="hidden md:flex items-center justify-center gap-1 flex-1">
                             {mainNavLinks.map((link) => {
                                 const isActive = pathname === link.href;
+                                // @ts-ignore
+                                const isDisabled = link.disabled;
+
                                 return (
                                     <Link
-                                        key={link.href}
+                                        key={link.name}
                                         href={link.href}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap border
+                                        onClick={(e) => isDisabled && e.preventDefault()}
+                                        className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap border group
                       ${isActive
                                                 ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                                                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-transparent'
+                                                : isDisabled
+                                                    ? 'text-slate-400 cursor-not-allowed border-transparent opacity-80'
+                                                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-transparent'
                                             }`}
                                     >
                                         <link.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
                                         {link.name}
+                                        {/* @ts-ignore */}
+                                        {link.badge && (
+                                            // @ts-ignore
+                                            <span className={`absolute -top-2 -right-2 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-sm border border-white ${isDisabled ? 'bg-slate-500' : 'bg-indigo-600'}`}>
+                                                {/* @ts-ignore */}
+                                                {link.badge}
+                                            </span>
+                                        )}
                                     </Link>
                                 );
                             })}

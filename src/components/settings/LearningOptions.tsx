@@ -17,6 +17,25 @@ interface LearningOptionsProps {
 export default function LearningOptions({ userData, showMessage }: LearningOptionsProps) {
     const [formData, setFormData] = useState(userData);
     const [saving, setSaving] = useState(false);
+    const [vocabSets, setVocabSets] = useState<any[]>([]);
+
+    React.useEffect(() => {
+        const fetchVocabSets = async () => {
+            const { data } = await supabase
+                .from('vocabulary_sets')
+                .select('id, title, slug, description')
+                .eq('is_active', true);
+
+            if (data) {
+                setVocabSets(data);
+                // Eğer sadece 1 tane aktif liste varsa, onu otomatik seç
+                if (data.length === 1) {
+                    setFormData(prev => ({ ...prev, preferredWordList: data[0].slug }));
+                }
+            }
+        };
+        fetchVocabSets();
+    }, []);
 
     const saveLearning = async () => {
         setSaving(true);
@@ -106,35 +125,43 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                     <label className="block text-sm font-bold text-slate-800">Çalışılacak Kelime Listesi</label>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* DB'den gelen aktif listeler */}
+                    {vocabSets.map(set => (
+                        <div
+                            key={set.slug}
+                            onClick={() => setFormData({ ...formData, preferredWordList: set.slug })}
+                            className={`p-4 rounded-xl border-2 transition-all relative cursor-pointer ${formData.preferredWordList === set.slug
+                                ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                                : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                                }`}
+                        >
+                            <div className="flex items-start justify-between mb-1">
+                                <span className="text-2xl">📚</span>
+                                {formData.preferredWordList === set.slug && <CheckCircle size={18} className="text-indigo-600" />}
+                            </div>
+                            <div className="font-bold text-slate-800 text-sm mb-0.5">{set.title}</div>
+                            <div className="text-xs text-slate-500">{set.description || 'Kelime listesi'}</div>
+                        </div>
+                    ))}
+
+                    {/* Gelecek Listeler (Statik) */}
                     {[
-                        { value: 'general', label: 'Genel Kelimeler', desc: 'Günlük hayatta kullanılan kelimeler', icon: '📚' },
                         { value: 'academic', label: 'Akademik', desc: 'Üniversite ve akademik metinler', icon: '🎓' },
-                        { value: 'business', label: 'İş İngilizcesi', desc: 'İş hayatı ve profesyonel', icon: '💼' },
                         { value: 'toefl', label: 'TOEFL', desc: 'TOEFL sınavına yönelik', icon: '📝' },
                         { value: 'ielts', label: 'IELTS', desc: 'IELTS sınavına yönelik', icon: '📋' },
-                    ].map(list => {
-                        const isGeneral = list.value === 'general';
-                        return (
-                            <div
-                                key={list.value}
-                                onClick={() => isGeneral && setFormData({ ...formData, preferredWordList: list.value })}
-                                className={`p-4 rounded-xl border-2 transition-all relative ${formData.preferredWordList === list.value
-                                    ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/20 cursor-pointer'
-                                    : isGeneral
-                                        ? 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 cursor-pointer'
-                                        : 'border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed'
-                                    }`}
-                            >
-                                <div className="flex items-start justify-between mb-1">
-                                    <span className="text-2xl">{list.icon}</span>
-                                    {formData.preferredWordList === list.value && <CheckCircle size={18} className="text-indigo-600" />}
-                                    {!isGeneral && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">YAKINDA</span>}
-                                </div>
-                                <div className="font-bold text-slate-800 text-sm mb-0.5">{list.label}</div>
-                                <div className="text-xs text-slate-500">{list.desc}</div>
+                    ].map(list => (
+                        <div
+                            key={list.value}
+                            className="p-4 rounded-xl border-2 border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed relative"
+                        >
+                            <div className="flex items-start justify-between mb-1">
+                                <span className="text-2xl">{list.icon}</span>
+                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">YAKINDA</span>
                             </div>
-                        );
-                    })}
+                            <div className="font-bold text-slate-800 text-sm mb-0.5">{list.label}</div>
+                            <div className="text-xs text-slate-500">{list.desc}</div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

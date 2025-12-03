@@ -73,13 +73,14 @@ export default function History() {
     const words = data?.items || [];
     const totalCount = data?.totalCount || 0;
 
-    const playAudio = (e: React.MouseEvent, url: string | undefined, text: string) => {
+    const playAudio = (e: React.MouseEvent, url: string | undefined | null, text: string, accent: 'US' | 'UK') => {
         e.preventDefault();
         e.stopPropagation();
-        if (url) new Audio(url).play().catch(() => { });
-        else {
+        if (url) {
+            new Audio(url).play().catch(() => { });
+        } else {
             const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'en-US';
+            u.lang = accent === 'US' ? 'en-US' : 'en-GB';
             window.speechSynthesis.speak(u);
         }
     };
@@ -325,7 +326,7 @@ export default function History() {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <h3 className="font-bold text-lg text-slate-800 capitalize group-hover:text-indigo-700 transition-colors leading-tight">{item.vocabulary?.word}</h3>
+                                                <h3 className="font-bold text-lg text-slate-800 group-hover:text-indigo-700 transition-colors leading-tight">{item.vocabulary?.word?.toLowerCase()}</h3>
 
                                                 {/* Badges Next to Word */}
                                                 {item.is_mastered && item.repetitions === 0 && (
@@ -345,7 +346,7 @@ export default function History() {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2 shrink-0 ml-2">
+                                    <div className="flex gap-1 shrink-0 ml-2">
                                         {/* Re-learn Button for Mastered Words */}
                                         {item.is_mastered && (
                                             <button
@@ -356,23 +357,35 @@ export default function History() {
                                                 <RotateCcw size={16} />
                                             </button>
                                         )}
-                                        <button
-                                            onClick={(e) => playAudio(e, item.vocabulary?.audio_url, item.vocabulary?.word)}
-                                            className="p-1.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
-                                        >
-                                            <Volume2 size={16} />
-                                        </button>
+                                        <div className="flex flex-col sm:flex-row items-center gap-2">
+                                            <button
+                                                onClick={(e) => playAudio(e, item.vocabulary?.audio_us || item.vocabulary?.audio_url, item.vocabulary?.word, 'US')}
+                                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition border border-slate-200 flex items-center gap-1.5 active:scale-95 touch-manipulation w-full sm:w-auto justify-center"
+                                                title="Amerikan Aksanı"
+                                            >
+                                                <Volume2 size={14} />
+                                                US
+                                            </button>
+                                            <button
+                                                onClick={(e) => playAudio(e, item.vocabulary?.audio_uk, item.vocabulary?.word, 'UK')}
+                                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition border border-slate-200 flex items-center gap-1.5 active:scale-95 touch-manipulation w-full sm:w-auto justify-center"
+                                                title="İngiliz Aksanı"
+                                            >
+                                                <Volume2 size={14} />
+                                                UK
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* ÖRNEK CÜMLELER */}
                                 <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 group-hover:bg-indigo-50/30 group-hover:border-indigo-100 transition-colors mt-auto">
                                     <p className="text-slate-800 mb-1.5 font-medium flex gap-2 text-sm">
-                                        <span className="text-lg">🇬🇧</span>
+                                        <span className="text-xs font-bold text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded">EN</span>
                                         <span className="italic">"{item.vocabulary?.example_en}"</span>
                                     </p>
                                     <p className="text-slate-500 flex gap-2 text-xs">
-                                        <span className="text-lg">🇹🇷</span>
+                                        <span className="text-xs font-bold text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded">TR</span>
                                         <span>{item.vocabulary?.example_tr}</span>
                                     </p>
                                 </div>

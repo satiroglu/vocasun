@@ -53,9 +53,9 @@ export default function Settings() {
                 bio: data?.bio || '',
                 displayPreference: data?.display_name_preference || 'username',
                 leaderboardVisibility: data?.leaderboard_visibility || 'visible',
-                preferredWordList: data?.preferred_word_list || 'general',
+                preferredWordList: data?.preferred_word_list?.[0] || 'general',
                 difficultyLevel: data?.difficulty_level || 'mixed',
-                accent: 'american',
+                accent: data?.accent_preference || 'US',
                 emailNotifications: true,
                 marketingEmails: false
             });
@@ -68,14 +68,6 @@ export default function Settings() {
         setMessage({ type, text });
         setTimeout(() => setMessage(null), 4000);
     };
-
-    const SettingsSkeleton = () => (
-        <div className="w-full max-w-3xl space-y-8 animate-pulse">
-            <div className="h-8 w-48 bg-slate-200 rounded-lg mb-2"></div>
-            <div className="h-4 w-64 bg-slate-200 rounded-lg mb-8"></div>
-            <div className="bg-white p-8 rounded-xl border border-slate-100 h-64"></div>
-        </div>
-    );
 
     if (loading) return <div className="min-h-screen pt-20 flex justify-center bg-slate-50"><SettingsSkeleton /></div>;
 
@@ -127,3 +119,11 @@ export default function Settings() {
         </div>
     );
 }
+
+const SettingsSkeleton = () => (
+    <div className="w-full max-w-3xl space-y-8 animate-pulse">
+        <div className="h-8 w-48 bg-slate-200 rounded-lg mb-2"></div>
+        <div className="h-4 w-64 bg-slate-200 rounded-lg mb-8"></div>
+        <div className="bg-white p-8 rounded-xl border border-slate-100 h-64"></div>
+    </div>
+);

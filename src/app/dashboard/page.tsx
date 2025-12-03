@@ -28,13 +28,14 @@ export default function Dashboard() {
         return `${Math.floor(diffInSeconds / 86400)} gün önce`;
     };
 
-    const playAudio = (e: React.MouseEvent, url: string | undefined, text: string) => {
+    const playAudio = (e: React.MouseEvent, url: string | undefined | null, text: string, accent: 'US' | 'UK') => {
         e.preventDefault();
         e.stopPropagation(); // Tıklamanın üst elemanlara geçmesini engelle
-        if (url) new Audio(url).play().catch(() => { });
-        else {
+        if (url) {
+            new Audio(url).play().catch(() => { });
+        } else {
             const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'en-US';
+            u.lang = accent === 'US' ? 'en-US' : 'en-GB';
             window.speechSynthesis.speak(u);
         }
     };
@@ -185,12 +186,24 @@ export default function Dashboard() {
                                         <div className="flex items-center gap-3">
                                             <div className={`w-3 h-3 rounded-full ${item.is_mastered ? 'bg-green-500 shadow-green-200 shadow-lg' : 'bg-amber-500 shadow-amber-200 shadow-lg'}`}></div>
                                             <h3 className="font-bold text-lg text-slate-800 group-hover:text-indigo-700 transition-colors">{item.vocabulary?.word}</h3>
-                                            <button
-                                                onClick={(e) => playAudio(e, item.vocabulary?.audio_url, item.vocabulary?.word)}
-                                                className="p-1.5 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
-                                            >
-                                                <Volume2 size={16} />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={(e) => playAudio(e, item.vocabulary?.audio_us || item.vocabulary?.audio_url, item.vocabulary?.word, 'US')}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition border border-slate-200 flex items-center gap-1.5 active:scale-95 touch-manipulation"
+                                                    title="Amerikan Aksanı"
+                                                >
+                                                    <Volume2 size={14} />
+                                                    US
+                                                </button>
+                                                <button
+                                                    onClick={(e) => playAudio(e, item.vocabulary?.audio_uk, item.vocabulary?.word, 'UK')}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition border border-slate-200 flex items-center gap-1.5 active:scale-95 touch-manipulation"
+                                                    title="İngiliz Aksanı"
+                                                >
+                                                    <Volume2 size={14} />
+                                                    UK
+                                                </button>
+                                            </div>
                                         </div>
                                         <span className="text-xs font-bold text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-100">
                                             {timeAgo(item.updated_at)}

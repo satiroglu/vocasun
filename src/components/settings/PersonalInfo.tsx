@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { User, Camera, Mail, Save } from 'lucide-react';
+import { User, Camera, Mail, Save, AlertTriangle, Info } from 'lucide-react';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 
@@ -42,8 +42,9 @@ export default function PersonalInfo({ userData, showMessage }: PersonalInfoProp
                 setEmailUpdateMsg('Yeni e-posta adresinize doğrulama bağlantısı gönderildi.');
             }
             showMessage('success', 'Kişisel bilgiler güncellendi.');
-        } catch (error: any) {
-            showMessage('error', error.message);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
+            showMessage('error', errorMessage);
         } finally {
             setSaving(false);
         }
@@ -100,6 +101,10 @@ export default function PersonalInfo({ userData, showMessage }: PersonalInfoProp
                         className="bg-slate-50 text-slate-500 cursor-not-allowed border-slate-100"
                         icon={<span className="text-slate-400 text-sm font-bold">@</span>}
                     />
+                    <div className="flex items-start gap-2 mt-2 text-xs text-slate-500">
+                        <Info size={14} className="mt-0.5 flex-shrink-0" />
+                        <span>Güvenlik nedeniyle kullanıcı adı değiştirilemez.</span>
+                    </div>
                 </div>
 
                 <div className="mb-8">
@@ -110,6 +115,12 @@ export default function PersonalInfo({ userData, showMessage }: PersonalInfoProp
                         icon={<Mail size={18} />}
                     />
                     {emailUpdateMsg && <p className="text-xs text-amber-600 mt-2 font-medium bg-amber-50 p-2 rounded-lg border border-amber-100">{emailUpdateMsg}</p>}
+                    {formData.email !== userData.email && !emailUpdateMsg && (
+                        <div className="flex items-start gap-2 mt-2 p-3 bg-amber-50 rounded-lg border border-amber-100 text-amber-800 text-xs">
+                            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                            <span>E-posta adresini değiştirdiğinde, hem eski hem de yeni adresine doğrulama bağlantısı gönderilecektir.</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="mb-5">
@@ -118,7 +129,13 @@ export default function PersonalInfo({ userData, showMessage }: PersonalInfoProp
                         value={formData.bio}
                         onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                         placeholder="Kısaca kendinden bahset..."
+                        maxLength={160}
                     />
+                    <div className="flex justify-end mt-1">
+                        <span className={`text-xs font-medium ${formData.bio.length >= 160 ? 'text-red-500' : 'text-slate-400'}`}>
+                            {formData.bio.length}/160
+                        </span>
+                    </div>
                 </div>
 
                 <div className="flex justify-end border-t border-slate-50 pt-5">

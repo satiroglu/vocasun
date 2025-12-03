@@ -21,6 +21,7 @@
 /build
 
 /sqls
+/word-audio
 
 # misc
 .DS_Store

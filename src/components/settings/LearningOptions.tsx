@@ -1,0 +1,187 @@
+import React, { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { BookOpen, Target, Languages, List, CheckCircle, TrendingUp, Save } from 'lucide-react';
+import Button from '@/components/Button';
+
+interface LearningOptionsProps {
+    userData: {
+        id: string;
+        dailyGoal: number;
+        preferredWordList: string;
+        difficultyLevel: string;
+        accent: string;
+    };
+    showMessage: (type: 'success' | 'error', text: string) => void;
+}
+
+export default function LearningOptions({ userData, showMessage }: LearningOptionsProps) {
+    const [formData, setFormData] = useState(userData);
+    const [saving, setSaving] = useState(false);
+
+    const saveLearning = async () => {
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    daily_goal: formData.dailyGoal,
+                    preferred_word_list: formData.preferredWordList,
+                    difficulty_level: formData.difficultyLevel
+                })
+                .eq('id', formData.id);
+            if (error) throw error;
+            showMessage('success', 'Öğrenim ayarları kaydedildi.');
+        } catch (error: any) {
+            showMessage('error', error.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <section className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><BookOpen size={24} /></div>
+                <div>
+                    <h2 className="text-lg font-bold text-slate-800">Öğrenim Seçenekleri</h2>
+                    <p className="text-sm text-slate-500">Öğrenme deneyimini kişiselleştir.</p>
+                </div>
+            </div>
+
+            {/* Günlük Kelime Hedefi */}
+            <div className="mb-6 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
+                <div className="flex items-center gap-2 mb-3">
+                    <Target size={20} className="text-indigo-600" />
+                    <label className="block text-sm font-bold text-slate-800">Günlük Kelime Hedefi</label>
+                </div>
+                <div className="flex items-center gap-4 mb-2">
+                    <input
+                        type="range"
+                        min="5"
+                        max="50"
+                        step="5"
+                        value={formData.dailyGoal}
+                        onChange={(e) => setFormData({ ...formData, dailyGoal: Number(e.target.value) })}
+                        className="w-full h-2.5 bg-white rounded-lg appearance-none cursor-pointer accent-indigo-600 shadow-inner"
+                    />
+                    <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-indigo-200 min-w-[60px] text-center">
+                        <span className="font-bold text-indigo-600 text-lg">{formData.dailyGoal}</span>
+                    </div>
+                </div>
+                <p className="text-xs text-indigo-700 ml-1">Her gün {formData.dailyGoal} kelime çalışmayı hedefle.</p>
+            </div>
+
+            {/* Aksan Seçimi - YAKINDA */}
+            <div className="mb-6 relative">
+                <div className="flex items-center gap-2 mb-3">
+                    <Languages size={20} className="text-slate-400" />
+                    <label className="block text-sm font-bold text-slate-400">İngiliz/Amerikan Aksanı</label>
+                    <span className="ml-auto px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md">YAKINDA</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 opacity-50 pointer-events-none">
+                    {[
+                        { value: 'american', label: 'Amerikan', flag: '🇺🇸' },
+                        { value: 'british', label: 'İngiliz', flag: '🇬🇧' },
+                    ].map(accent => (
+                        <div
+                            key={accent.value}
+                            className={`p-4 rounded-xl border-2 ${formData.accent === accent.value
+                                ? 'border-indigo-500 bg-indigo-50/50'
+                                : 'border-slate-200'
+                                }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className="text-3xl">{accent.flag}</span>
+                                <div className="font-bold text-slate-800 text-sm">{accent.label}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Kelime Listesi Seçimi */}
+            <div className="mb-6 relative">
+                <div className="flex items-center gap-2 mb-3">
+                    <List size={20} className="text-indigo-600" />
+                    <label className="block text-sm font-bold text-slate-800">Çalışılacak Kelime Listesi</label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                        { value: 'general', label: 'Genel Kelimeler', desc: 'Günlük hayatta kullanılan kelimeler', icon: '📚' },
+                        { value: 'academic', label: 'Akademik', desc: 'Üniversite ve akademik metinler', icon: '🎓' },
+                        { value: 'business', label: 'İş İngilizcesi', desc: 'İş hayatı ve profesyonel', icon: '💼' },
+                        { value: 'toefl', label: 'TOEFL', desc: 'TOEFL sınavına yönelik', icon: '📝' },
+                        { value: 'ielts', label: 'IELTS', desc: 'IELTS sınavına yönelik', icon: '📋' },
+                    ].map(list => {
+                        const isGeneral = list.value === 'general';
+                        return (
+                            <div
+                                key={list.value}
+                                onClick={() => isGeneral && setFormData({ ...formData, preferredWordList: list.value })}
+                                className={`p-4 rounded-xl border-2 transition-all relative ${formData.preferredWordList === list.value
+                                    ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/20 cursor-pointer'
+                                    : isGeneral
+                                        ? 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 cursor-pointer'
+                                        : 'border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed'
+                                    }`}
+                            >
+                                <div className="flex items-start justify-between mb-1">
+                                    <span className="text-2xl">{list.icon}</span>
+                                    {formData.preferredWordList === list.value && <CheckCircle size={18} className="text-indigo-600" />}
+                                    {!isGeneral && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">YAKINDA</span>}
+                                </div>
+                                <div className="font-bold text-slate-800 text-sm mb-0.5">{list.label}</div>
+                                <div className="text-xs text-slate-500">{list.desc}</div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Kelime Listelerim - YAKINDA */}
+            <div className="mb-6 relative">
+                <div className="flex items-center gap-2 mb-3">
+                    <BookOpen size={20} className="text-slate-400" />
+                    <label className="block text-sm font-bold text-slate-400">Kelime Listelerim</label>
+                    <span className="ml-auto px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md">YAKINDA</span>
+                </div>
+                <div className="p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 opacity-50">
+                    <p className="text-sm text-slate-500 text-center">Kendi kelime listelerini oluştur ve yönet</p>
+                </div>
+            </div>
+
+            {/* Zorluk Seviyesi - YAKINDA */}
+            <div className="mb-6 relative">
+                <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp size={20} className="text-slate-400" />
+                    <label className="block text-sm font-bold text-slate-400">Zorluk Seviyesi</label>
+                    <span className="ml-auto px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md">YAKINDA</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 opacity-50 pointer-events-none">
+                    {[
+                        { value: 'beginner', label: 'Başlangıç', color: 'green' },
+                        { value: 'intermediate', label: 'Orta', color: 'yellow' },
+                        { value: 'advanced', label: 'İleri', color: 'red' },
+                        { value: 'mixed', label: 'Karışık', color: 'indigo' },
+                    ].map(level => (
+                        <div
+                            key={level.value}
+                            className={`p-3 rounded-xl border-2 text-center ${formData.difficultyLevel === level.value
+                                ? `border-${level.color}-500 bg-${level.color}-50`
+                                : 'border-slate-200'
+                                }`}
+                        >
+                            <div className="font-bold text-sm text-slate-800">{level.label}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="flex justify-end border-t border-slate-100 pt-5">
+                <Button onClick={saveLearning} variant="soft" isLoading={saving} icon={!saving && <Save size={18} />}>
+                    Öğrenim Ayarlarını Kaydet
+                </Button>
+            </div>
+        </section>
+    );
+}

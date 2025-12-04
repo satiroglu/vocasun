@@ -96,7 +96,7 @@ export default function Dashboard() {
                 </section>
 
                 {/* İstatistikler Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-2">
 
                     {/* Günlük Hedef Kartı */}
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group col-span-2">

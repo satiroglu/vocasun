@@ -26,7 +26,7 @@ export function useUser() {
                 // 2. Profil Verisini Çek (accent_preference vb. burada)
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select('id, username, first_name, last_name, email, total_xp, weekly_xp, level, daily_goal, bio, avatar_url, display_name_preference, leaderboard_visibility, preferred_word_list, difficulty_level, accent_preference, created_at, marked_for_deletion_at, is_admin')
                     .eq('id', authUser.id)
                     .single();
 
@@ -56,7 +56,7 @@ export function useUser() {
                 // Giriş yapıldıysa profili de tekrar çekip birleştirelim
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select('id, username, first_name, last_name, email, total_xp, weekly_xp, level, daily_goal, bio, avatar_url, display_name_preference, leaderboard_visibility, preferred_word_list, difficulty_level, accent_preference, created_at, marked_for_deletion_at, is_admin')
                     .eq('id', session.user.id)
                     .single();
 

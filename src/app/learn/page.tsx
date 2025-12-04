@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
     ArrowLeft, Volume2, Check, X, PenTool, LayoutGrid,
     BookOpen, Sparkles, SkipForward, Trophy, RotateCcw, EyeOff, Clock,
@@ -168,6 +169,13 @@ export default function Learn() {
             }
         } catch (error) {
             console.error("Cevap kaydedilemedi:", error);
+            // Show user-friendly error message
+            setFeedbackMsg({
+                type: 'warning',
+                text: 'İlerleme kaydedilemedi. Lütfen internet bağlantınızı kontrol edin.'
+            });
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -400,7 +408,7 @@ export default function Learn() {
                     <div className={`flex-1 flex flex-col items-center justify-center min-h-0 w-full ${mode === 'flip' ? 'pb-0' : 'pb-4'}`}>
                         {currentWord.image_url && !showFullResult && mode !== 'flip' && (
                             <div className="mb-4 w-32 h-32 shrink-0 relative rounded-xl overflow-hidden shadow-md border-2 border-white ring-1 ring-slate-100">
-                                <img src={currentWord.image_url} alt="Word visual" className="object-cover w-full h-full" />
+                                <Image src={currentWord.image_url} alt={currentWord.word} fill className="object-cover" sizes="128px" />
                             </div>
                         )}
 
@@ -599,15 +607,15 @@ export default function Learn() {
             </div>
 
             {showFullResult && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in p-6">
-                    <div className={`p-8 rounded-xl shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in p-4 sm:p-6">
+                    <div className={`p-4 sm:p-8 rounded-xl shadow-2xl w-full max-w-sm text-center animate-scale-up bg-white relative overflow-hidden`}>
                         <div className={`absolute top-0 left-0 w-full h-2 ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
 
-                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ${status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                            {status === 'success' ? <Check size={40} strokeWidth={4} /> : <X size={40} strokeWidth={4} />}
+                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg ${status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            {status === 'success' ? <Check size={32} strokeWidth={4} className="sm:w-10 sm:h-10" /> : <X size={32} strokeWidth={4} className="sm:w-10 sm:h-10" />}
                         </div>
 
-                        <h3 className={`text-2xl font-black mb-4 ${status === 'success' ? 'text-slate-800' : 'text-slate-800'}`}>
+                        <h3 className={`text-xl sm:text-2xl font-black mb-3 sm:mb-4 px-2 ${status === 'success' ? 'text-slate-800' : 'text-slate-800'}`}>
                             {status === 'success' ? 'Harika, Doğru!' : 'Üzgünüm, Yanlış!'}
                         </h3>
 
@@ -620,13 +628,13 @@ export default function Learn() {
                             </div>
                         )}
 
-                        <div className="bg-slate-50 rounded-xl p-5 pt-8 border border-slate-100 mb-6 relative mt-6">
+                        <div className="bg-slate-50 rounded-xl p-4 sm:p-5 pt-8 border border-slate-100 mb-4 sm:mb-6 relative mt-4 sm:mt-6">
                             {/* ROZETLER DÜZELTİLDİ: w-full ve justify-center */}
                             <div className="absolute -top-3 left-0 w-full flex justify-center px-4">
                                 <WordBadges small />
                             </div>
 
-                            <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4">
+                            <div className="text-2xl sm:text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4 break-words px-2">
                                 {currentWord.word}
                             </div>
 
@@ -680,9 +688,9 @@ export default function Learn() {
                                 </div>
                             </div>
 
-                            <p className="text-sm text-slate-500 italic mt-2">"{currentWord.example_en}"</p>
+                            <p className="text-xs sm:text-sm text-slate-500 italic mt-2 break-words">"{currentWord.example_en}"</p>
                             <div className="mt-3 h-px w-full bg-slate-200"></div>
-                            <p className="text-sm text-slate-400 mt-2">{currentWord.example_tr}</p>
+                            <p className="text-xs sm:text-sm text-slate-400 mt-2 break-words">{currentWord.example_tr}</p>
                         </div>
                         <button
                             onClick={nextQuestion}

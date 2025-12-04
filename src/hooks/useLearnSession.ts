@@ -93,8 +93,8 @@ export function useLearnSession(userId: string | undefined) {
         queryKey: ['learn-session', userId],
         queryFn: () => fetchLearnSession(userId!),
         enabled: !!userId,
-        staleTime: 0,
-        gcTime: 0,
+        staleTime: 5 * 60 * 1000, // 5 minutes - reduce unnecessary refetches
+        gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
     });
 }
 

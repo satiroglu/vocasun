@@ -10,6 +10,7 @@ import {
 import { VocabularyItem } from '@/types';
 import Button from '@/components/Button';
 import { useUser } from '@/hooks/useUser';
+import { useProfile } from '@/hooks/useProfile';
 import { useLearnSession, useChoiceOptions, useSaveProgress } from '@/hooks/useLearnSession';
 import { getEditDistance } from '@/lib/utils';
 
@@ -18,6 +19,7 @@ type FeedbackStatus = 'idle' | 'success' | 'error';
 
 export default function Learn() {
     const { user } = useUser();
+    const { data: profile } = useProfile(user?.id);
     const { data: sessionData, isLoading: sessionLoading, isRefetching, refetch: refetchSession } = useLearnSession(user?.id);
     const saveProgressMutation = useSaveProgress();
 
@@ -86,42 +88,65 @@ export default function Learn() {
         }
     };
 
-    const playAudio = (text?: string) => {
+    // --- GÜNCELLENMİŞ AKILLI SES FONKSİYONU ---
+    const playAudio = (overrideAccent?: 'US' | 'UK', textToSpeak?: string) => {
         stopAudio();
-        const wordToPlay = text || currentWord?.word;
-        if (!wordToPlay) return;
 
-        if (currentWord?.audio_url && !text) {
-            const audio = new Audio(currentWord.audio_url);
+        // 1. Özel Metin Okuma (Şıklar vb.)
+        if (textToSpeak) {
+            const u = new SpeechSynthesisUtterance(textToSpeak);
+            const targetAccent = overrideAccent || user?.accent_preference || 'US';
+            u.lang = targetAccent === 'UK' ? 'en-GB' : 'en-US';
+            u.rate = 0.9;
+            window.speechSynthesis.speak(u);
+            return;
+        }
+
+        const wordToPlay = currentWord?.word;
+        if (!wordToPlay || !currentWord) return;
+
+        // 2. Aksan Belirleme (Butona basıldıysa o, yoksa profil ayarı)
+        const targetAccent = overrideAccent || user?.accent_preference || 'US';
+
+        let audioSrc: string | null | undefined = null;
+
+        if (targetAccent === 'UK') {
+            audioSrc = currentWord.audio_uk;
+        } else {
+            audioSrc = currentWord.audio_us;
+        }
+
+        // 3. Fallback (İstenen yoksa diğerlerini dene)
+        if (!audioSrc) {
+            audioSrc = currentWord.audio_us || currentWord.audio_uk || currentWord.audio_url;
+        }
+
+        if (audioSrc) {
+            const audio = new Audio(audioSrc);
             audioRef.current = audio;
             audio.play().catch(() => { });
         } else {
+            // Hiçbiri yoksa Tarayıcı Sesi
             const u = new SpeechSynthesisUtterance(wordToPlay);
-            u.lang = 'en-US';
+            u.lang = targetAccent === 'UK' ? 'en-GB' : 'en-US';
             window.speechSynthesis.speak(u);
         }
     };
 
-    // --- GÜNCELLENMİŞ HANDLE ANSWER ---
-    // Artık 'isCorrect' değil, 'userAnswer' alıyor.
     const handleAnswer = async (answer: string | null, isMasteredManually: boolean = false, visualCorrect: boolean = false) => {
         if (isProcessing || !user || !currentWord) return;
         setIsProcessing(true);
 
-        // Görsel geri bildirim için durumu ayarla
-        // Not: Gerçek doğrulama sunucuda yapılacak, burası sadece UI tepkisi için.
         setStatus(visualCorrect || isMasteredManually ? 'success' : 'error');
         setShowFullResult(true);
 
-        // Ses efekti
         if (visualCorrect || isMasteredManually) {
             playAudio();
         } else {
-            playAudio(); // Yanlışta da telaffuzu duymak iyidir
+            playAudio();
         }
 
         try {
-            // Sunucuya cevabı gönder
             const response = await saveProgressMutation.mutateAsync({
                 userId: user.id,
                 vocabId: currentWord.id,
@@ -130,9 +155,7 @@ export default function Learn() {
                 isMastered: isMasteredManually
             });
 
-            // Sunucudan dönen gerçek verilerle istatistikleri güncelle
             if (response) {
-                // response.is_correct sunucudan dönecek (SQL fonksiyonunu güncelledikten sonra)
                 const isServerCorrect = response.is_correct || isMasteredManually;
                 const xpGained = response.xp_gained || 0;
 
@@ -145,7 +168,6 @@ export default function Learn() {
             }
         } catch (error) {
             console.error("Cevap kaydedilemedi:", error);
-            // Hata durumunda UI'ı bozmamak için devam edilebilir veya hata gösterilebilir
         }
     };
 
@@ -157,8 +179,6 @@ export default function Learn() {
         const inputLower = input.toLowerCase();
         const target = currentWord.word.toLowerCase();
 
-        // UI için ön kontrol (Client-side validation for UX)
-        // Sunucu da ayrıca kontrol edecek.
         let isVisuallyCorrect = false;
 
         if (inputLower === target) {
@@ -187,7 +207,6 @@ export default function Learn() {
             }
         }
 
-        // Backend'e kullanıcının girdiği metni gönderiyoruz
         handleAnswer(input, false, isVisuallyCorrect);
     };
 
@@ -196,7 +215,6 @@ export default function Learn() {
             type: 'info',
             text: 'Bu kelimeyi "Biliyorum" olarak işaretlediniz.'
         });
-        // Mastered durumunda cevap null gönderilebilir
         await handleAnswer(null, true, true);
     };
 
@@ -234,8 +252,6 @@ export default function Learn() {
                 if (['1', '2', '3', '4'].includes(e.key)) {
                     const index = parseInt(e.key) - 1;
                     if (options[index]) {
-                        // Seçme modunda seçilen kelimenin kendisini (word) gönderiyoruz
-                        // UI için doğruluk kontrolü: ID eşleşmesi
                         const selectedOption = options[index];
                         handleAnswer(selectedOption.word, false, selectedOption.id === currentWord?.id);
                     }
@@ -289,7 +305,6 @@ export default function Learn() {
         if (currentIndex === initialSessionLength && !isSessionFinished) {
             return (
                 <div className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden font-sans relative pt-0">
-                    {/* ... Loading UI ... */}
                     <div className="flex-1 relative flex flex-col w-full max-w-lg mx-auto overflow-y-auto mt-32 mb-4 items-center justify-center">
                         <div className="animate-pulse text-indigo-600 font-bold">Tamamlanıyor...</div>
                     </div>
@@ -310,8 +325,10 @@ export default function Learn() {
         return 'bg-slate-100 text-slate-600 border-slate-200';
     };
 
+    // --- GÜNCELLENMİŞ BADGE YAPISI ---
     const WordBadges = ({ small = false }: { small?: boolean }) => (
-        <div className={`flex items-center justify-center ${small ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
+        // flex-wrap ve justify-center ile taşmayı engelledik ve ortaladık
+        <div className={`flex flex-wrap items-center justify-center ${small ? 'gap-1.5' : 'gap-2'}`}>
             <div className={`inline-flex items-center gap-1.5 ${small ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded-full font-bold uppercase tracking-wide border ${isNew
                 ? 'bg-blue-100 text-blue-700 border-blue-200'
                 : 'bg-orange-100 text-orange-700 border-orange-200'
@@ -408,8 +425,59 @@ export default function Learn() {
                                     </div>
                                     <div className="absolute w-full h-full bg-indigo-50 rounded-2xl flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-indigo-100 shadow-xl p-6">
                                         <div className="flex-1 flex flex-col items-center justify-center">
-                                            <div className="text-3xl font-black text-indigo-900 mb-4 text-center">{currentWord.word}</div>
-                                            <div className="space-y-3 w-full">
+                                            <div className="text-3xl font-black text-indigo-900 mb-2 text-center">{currentWord.word}</div>
+
+                                            {/* --- KART ARKASI SES KONTROLLERİ --- */}
+                                            <div className="flex flex-col items-center justify-center gap-3 my-3">
+                                                {/* Büyük Ana Buton */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        playAudio();
+                                                    }}
+                                                    className="w-16 h-16 flex items-center justify-center bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-105 active:scale-95 transition-all shadow-sm group"
+                                                    title="Dinle"
+                                                >
+                                                    <Volume2 size={32} className="group-active:scale-90 transition-transform" />
+                                                </button>
+
+                                                {/* Küçük Aksan Seçimi */}
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            playAudio('US');
+                                                        }}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all active:scale-95
+                                                            ${user?.accent_preference === 'US'
+                                                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/20'
+                                                                : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                                                            }`}
+                                                        title="Amerikan Aksanı"
+                                                    >
+                                                        <Volume2 size={13} />
+                                                        <span>US</span>
+                                                    </button>
+
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            playAudio('UK');
+                                                        }}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all active:scale-95
+                                                            ${user?.accent_preference === 'UK'
+                                                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/20'
+                                                                : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                                                            }`}
+                                                        title="İngiliz Aksanı"
+                                                    >
+                                                        <Volume2 size={13} />
+                                                        <span>UK</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3 w-full mt-2">
                                                 <div className="bg-white/60 p-3 rounded-xl border border-indigo-100/50">
                                                     <p className="text-indigo-800 text-sm italic text-center font-medium">"{currentWord.example_en}"</p>
                                                 </div>
@@ -552,17 +620,67 @@ export default function Learn() {
                             </div>
                         )}
 
-                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-6 relative">
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <div className="bg-slate-50 rounded-xl p-5 pt-8 border border-slate-100 mb-6 relative mt-6">
+                            {/* ROZETLER DÜZELTİLDİ: w-full ve justify-center */}
+                            <div className="absolute -top-3 left-0 w-full flex justify-center px-4">
                                 <WordBadges small />
                             </div>
+
                             <div className="text-3xl font-bold text-slate-800 flex items-center justify-center gap-2 mb-2 mt-4">
                                 {currentWord.word}
-                                <button onClick={() => playAudio()} className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-110 transition">
-                                    <Volume2 size={20} />
-                                </button>
                             </div>
-                            <p className="text-sm text-slate-500 italic">"{currentWord.example_en}"</p>
+
+                            {/* --- SONUÇ EKRANI SES KONTROLLERİ --- */}
+                            <div className="flex flex-col items-center justify-center gap-3 my-3">
+                                {/* Büyük Ana Buton */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        playAudio();
+                                    }}
+                                    className="w-16 h-16 flex items-center justify-center bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 hover:scale-105 active:scale-95 transition-all shadow-sm group"
+                                    title="Dinle"
+                                >
+                                    <Volume2 size={32} className="group-active:scale-90 transition-transform" />
+                                </button>
+
+                                {/* Küçük Aksan Seçimi */}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            playAudio('US');
+                                        }}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all active:scale-95
+                                            ${user?.accent_preference === 'US'
+                                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/20'
+                                                : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                                            }`}
+                                        title="Amerikan Aksanı"
+                                    >
+                                        <Volume2 size={13} />
+                                        <span>US</span>
+                                    </button>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            playAudio('UK');
+                                        }}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all active:scale-95
+                                            ${user?.accent_preference === 'UK'
+                                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/20'
+                                                : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                                            }`}
+                                        title="İngiliz Aksanı"
+                                    >
+                                        <Volume2 size={13} />
+                                        <span>UK</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-slate-500 italic mt-2">"{currentWord.example_en}"</p>
                             <div className="mt-3 h-px w-full bg-slate-200"></div>
                             <p className="text-sm text-slate-400 mt-2">{currentWord.example_tr}</p>
                         </div>

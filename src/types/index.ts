@@ -12,8 +12,10 @@ export interface Profile {
     avatar_url?: string;
     display_name_preference: 'username' | 'fullname';
     leaderboard_visibility?: 'visible' | 'anonymous' | 'hidden';
+    // Not: Veritabanında bunu array yaptıysak string[] olmalı, şimdilik senin koduna sadık kalıyorum
     preferred_word_list?: 'general' | 'academic' | 'business' | 'toefl' | 'ielts';
     difficulty_level?: 'beginner' | 'intermediate' | 'advanced' | 'mixed';
+    accent_preference?: 'US' | 'UK';
     created_at: string;
     marked_for_deletion_at?: string | null;
     is_admin?: boolean;
@@ -51,3 +53,7 @@ export interface UserProgress {
 }
 
 export type VocabularyItem = Vocabulary;
+
+// User denilince Profile özelliklerini de anlasın
+import { User as SupabaseUser } from '@supabase/supabase-js';
+export type ExtendedUser = SupabaseUser & Partial<Profile>;

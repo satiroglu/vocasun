@@ -2,74 +2,93 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ExtendedUser, Profile } from '@/types'; // Güncellediğimiz tipi kullanıyoruz
+import { ExtendedUser, Profile } from '@/types';
 
 // Auth kullanıcısını yöneten hook
 export function useUser() {
-    // Tip artık ExtendedUser (Hem Auth hem Profil verisi içerir)
     const [user, setUser] = useState<ExtendedUser | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let mounted = true;
+
         const getUserData = async () => {
             try {
                 // 1. Auth Oturumunu Al
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+                if (sessionError) {
+                    throw sessionError;
+                }
+
                 const authUser = session?.user;
 
                 if (!authUser) {
-                    setUser(null);
-                    setLoading(false);
+                    if (mounted) {
+                        setUser(null);
+                        setLoading(false);
+                    }
                     return;
                 }
 
-                // 2. Profil Verisini Çek (accent_preference vb. burada)
-                const { data: profile } = await supabase
+                // 2. Profil Verisini Çek
+                const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('id, username, first_name, last_name, email, total_xp, weekly_xp, level, daily_goal, bio, avatar_url, display_name_preference, leaderboard_visibility, preferred_word_list, difficulty_level, accent_preference, created_at, marked_for_deletion_at, is_admin')
                     .eq('id', authUser.id)
                     .single();
 
-                // 3. Verileri Birleştir (Auth + Profile)
-                if (profile) {
-                    setUser({
-                        ...authUser,
-                        ...(profile as Profile)
-                    });
-                } else {
-                    setUser(authUser as ExtendedUser);
+                if (profileError) {
+                    console.error('Profile fetch error:', profileError);
+                }
+
+                // 3. Verileri Birleştir
+                if (mounted) {
+                    if (profile) {
+                        setUser({
+                            ...authUser,
+                            ...(profile as Profile)
+                        });
+                    } else {
+                        setUser(authUser as ExtendedUser);
+                    }
                 }
 
             } catch (error) {
                 console.error('Kullanıcı verisi hatası:', error);
-                setUser(null);
+                if (mounted) setUser(null);
             } finally {
-                setLoading(false);
+                if (mounted) setLoading(false);
             }
         };
 
         getUserData();
 
-        // Auth değişikliklerini dinle
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user) {
-                // Giriş yapıldıysa profili de tekrar çekip birleştirelim
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('id, username, first_name, last_name, email, total_xp, weekly_xp, level, daily_goal, bio, avatar_url, display_name_preference, leaderboard_visibility, preferred_word_list, difficulty_level, accent_preference, created_at, marked_for_deletion_at, is_admin')
                     .eq('id', session.user.id)
                     .single();
 
-                setUser({
-                    ...session.user,
-                    ...(profile || {})
-                } as ExtendedUser);
+                if (mounted) {
+                    setUser({
+                        ...session.user,
+                        ...(profile || {})
+                    } as ExtendedUser);
+                    setLoading(false);
+                }
             } else {
-                setUser(null);
+                if (mounted) {
+                    setUser(null);
+                    setLoading(false);
+                }
             }
         });
 
         return () => {
+            mounted = false;
             authListener.subscription.unsubscribe();
         };
     }, []);

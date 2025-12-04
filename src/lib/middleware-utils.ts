@@ -30,14 +30,11 @@ export async function updateSession(request: NextRequest) {
         }
     );
 
-    // PERFORMANS İYİLEŞTİRMESİ:
-    // getUser() yerine getSession() kullanıyoruz.
-    // getSession: Yerel cookie'deki JWT'yi kontrol eder (Çok hızlıdır).
-    // getUser: Sunucuya istek atar (Güvenlidir ama yavaştır).
-    // Middleware'de sadece session'ı yenilemek (refresh token) yeterlidir.
-    // Asıl güvenlik kontrolünü sayfa (page.tsx) tarafında yapmaya devam edeceksiniz.
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
+    // GÜVENLİK VE GÜNCELLEME:
+    // getSession() yerine getUser() kullanıyoruz.
+    // getUser: Sunucuya istek atar ve token'ı doğrular. Token süresi dolmuşsa yeniler.
+    // Bu, middleware'de session'ın her zaman güncel ve geçerli olmasını sağlar.
+    const { data: { user }, error } = await supabase.auth.getUser();
 
     const path = request.nextUrl.pathname;
 
@@ -45,11 +42,10 @@ export async function updateSession(request: NextRequest) {
     const publicRoutes = ['/', '/login', '/register', '/auth/callback', '/forgot-password', '/update-password', '/changelog', '/about', '/privacy', '/terms', '/contact', '/kvkk', '/features'];
     const isPublicRoute = publicRoutes.some(route => path === route || path.startsWith(route + '/'));
 
-    // Yönlendirme Mantığı (Hala gerekli ama artık daha hızlı çalışacak)
+    // Yönlendirme Mantığı
 
     // 1. Giriş yapmamış kullanıcı korumalı sayfaya girmeye çalışırsa -> Login
     if (!user && !isPublicRoute) {
-        // URL'i korumak için redirect yerine rewrite kullanmıyoruz, tam redirect yapıyoruz.
         const url = request.nextUrl.clone();
         url.pathname = '/login';
         return NextResponse.redirect(url);

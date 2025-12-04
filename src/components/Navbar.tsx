@@ -9,12 +9,10 @@ import {
     LayoutDashboard, BookOpen, Trophy, Settings, HelpCircle, User, Sparkles
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
-import { useProfile } from '@/hooks/useProfile';
 import Logo from '@/components/Logo';
 
 export default function Navbar() {
-    const { user, loading } = useUser(); // Optimize edilmiş auth hook
-    const { data: profile } = useProfile(user?.id); // Optimize edilmiş profil hook (cache'li)
+    const { user, loading } = useUser(); // user artık profil bilgilerini de içeriyor (ExtendedUser)
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const pathname = usePathname();
@@ -47,11 +45,11 @@ export default function Navbar() {
     };
 
     const getDisplayName = () => {
-        if (!profile) return 'Yükleniyor...';
-        if (profile.display_name_preference === 'fullname' && profile.first_name) {
-            return `${profile.first_name} ${profile.last_name || ''}`;
+        if (!user) return 'Yükleniyor...';
+        if (user.display_name_preference === 'fullname' && user.first_name) {
+            return `${user.first_name} ${user.last_name || ''}`;
         }
-        return profile.username || profile.first_name || user?.email?.split('@')[0] || 'Öğrenci';
+        return user.username || user.first_name || user.email?.split('@')[0] || 'Öğrenci';
     };
 
     // Ana Navigasyon Linkleri (Desktop'ta bar üzerinde görünenler)
@@ -65,8 +63,8 @@ export default function Navbar() {
 
     // Kullanıcı Menüsü Linkleri (Desktop'ta dropdown içinde, Mobil'de listede)
     const userMenuLinks = [
-        { name: 'Profil', href: profile?.username ? `/profile/${profile.username}` : '/dashboard', icon: User },
-        { name: 'Nasıl?', href: '/info', icon: HelpCircle },
+        { name: 'Profil', href: user?.username ? `/profile/${user.username}` : '/dashboard', icon: User },
+        // { name: 'Nasıl?', href: '/info', icon: HelpCircle }, // Gizlendi
         { name: 'Yardım', href: '/help', icon: HelpCircle },
         { name: 'Ayarlar', href: '/settings', icon: Settings },
     ];
@@ -147,8 +145,8 @@ export default function Navbar() {
                                     className={`flex items-center gap-3 hover:opacity-80 transition-all group p-1.5 pr-4 rounded-xl border ${isUserMenuOpen ? 'bg-indigo-50 border-indigo-100' : 'border-transparent hover:bg-slate-50'}`}
                                 >
                                     <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100 group-hover:border-indigo-300 transition-colors overflow-hidden">
-                                        {profile?.avatar_url ? (
-                                            <img src={profile.avatar_url} alt={getDisplayName()} className="w-full h-full object-cover" />
+                                        {user?.avatar_url ? (
+                                            <img src={user.avatar_url} alt={getDisplayName()} className="w-full h-full object-cover" />
                                         ) : (
                                             <User size={18} className="text-indigo-600" />
                                         )}
@@ -157,7 +155,7 @@ export default function Navbar() {
                                     <div className="text-left hidden lg:block leading-tight">
                                         <div className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{getDisplayName()}</div>
                                         <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md inline-block">
-                                            {profile ? `Seviye ${profile.level}` : '...'}
+                                            {user ? `Seviye ${user.level}` : '...'}
                                         </div>
                                     </div>
                                 </button>
@@ -234,20 +232,20 @@ export default function Navbar() {
                                 <>
                                     {/* Mobil Profil Özeti */}
                                     <Link
-                                        href={profile?.username ? `/profile/${profile.username}` : '/dashboard'}
+                                        href={user?.username ? `/profile/${user.username}` : '/dashboard'}
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-4 hover:bg-slate-100 transition-colors active:scale-[0.98]"
                                     >
                                         <div className="w-10 h-10 bg-white rounded-xl shadow-sm text-indigo-600 flex items-center justify-center overflow-hidden border border-slate-100">
-                                            {profile?.avatar_url ? (
-                                                <img src={profile.avatar_url} alt={getDisplayName()} className="w-full h-full object-cover" />
+                                            {user?.avatar_url ? (
+                                                <img src={user.avatar_url} alt={getDisplayName()} className="w-full h-full object-cover" />
                                             ) : (
                                                 <User size={20} />
                                             )}
                                         </div>
                                         <div>
                                             <div className="font-bold text-slate-900">{getDisplayName()}</div>
-                                            <div className="text-xs font-medium text-slate-500">{profile ? `Seviye ${profile.level}` : '...'}</div>
+                                            <div className="text-xs font-medium text-slate-500">{user ? `Seviye ${user.level}` : '...'}</div>
                                         </div>
                                     </Link>
 

@@ -37,7 +37,11 @@ export async function GET(request: Request) {
             .select('*', { count: 'exact' });
 
         if (query) {
-            supabaseQuery = supabaseQuery.or(`username.ilike.%${query}%,email.ilike.%${query}%`);
+            // Sanitize query to prevent SQL injection
+            const sanitizedQuery = query.replace(/[%_]/g, '\\$&').trim();
+            if (sanitizedQuery.length > 0) {
+                supabaseQuery = supabaseQuery.or(`username.ilike.%${sanitizedQuery}%,email.ilike.%${sanitizedQuery}%`);
+            }
         }
 
         if (role === 'admin') {
@@ -163,6 +167,17 @@ export async function PUT(request: Request) {
 
         if (!id) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
 
+        // Validate that target user exists before attempting update
+        const { data: targetUser, error: targetError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', id)
+            .single();
+
+        if (targetError || !targetUser) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
         // Handle email verification update if present
         if (email_confirm !== undefined) {
             const supabaseAdmin = createServerClient(
@@ -220,6 +235,22 @@ export async function DELETE(request: Request) {
 
         const { id } = await request.json();
         if (!id) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+
+        // Validate that target user exists before attempting deletion
+        const { data: targetUser, error: targetError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', id)
+            .single();
+
+        if (targetError || !targetUser) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Prevent admin from deleting themselves
+        if (id === user.id) {
+            return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
+        }
 
         const supabaseAdmin = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,

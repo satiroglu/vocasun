@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
     ArrowLeft, Volume2, Check, X, PenTool, LayoutGrid,
     BookOpen, Sparkles, SkipForward, Trophy, RotateCcw, EyeOff, Clock,
@@ -168,6 +169,13 @@ export default function Learn() {
             }
         } catch (error) {
             console.error("Cevap kaydedilemedi:", error);
+            // Show user-friendly error message
+            setFeedbackMsg({
+                type: 'warning',
+                text: 'İlerleme kaydedilemedi. Lütfen internet bağlantınızı kontrol edin.'
+            });
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -400,7 +408,7 @@ export default function Learn() {
                     <div className={`flex-1 flex flex-col items-center justify-center min-h-0 w-full ${mode === 'flip' ? 'pb-0' : 'pb-4'}`}>
                         {currentWord.image_url && !showFullResult && mode !== 'flip' && (
                             <div className="mb-4 w-32 h-32 shrink-0 relative rounded-xl overflow-hidden shadow-md border-2 border-white ring-1 ring-slate-100">
-                                <img src={currentWord.image_url} alt="Word visual" className="object-cover w-full h-full" />
+                                <Image src={currentWord.image_url} alt={currentWord.word} fill className="object-cover" sizes="128px" />
                             </div>
                         )}
 

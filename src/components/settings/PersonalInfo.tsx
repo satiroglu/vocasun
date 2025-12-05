@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { User, Camera, Mail, Save, AlertTriangle, Info } from 'lucide-react';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import { useUser } from '@/hooks/useUser';
 
 interface PersonalInfoProps {
     userData: {
@@ -17,6 +18,7 @@ interface PersonalInfoProps {
 }
 
 export default function PersonalInfo({ userData, showMessage }: PersonalInfoProps) {
+    const { refreshUser } = useUser();
     const [formData, setFormData] = useState(userData);
     const [saving, setSaving] = useState(false);
     const [emailUpdateMsg, setEmailUpdateMsg] = useState('');
@@ -41,6 +43,8 @@ export default function PersonalInfo({ userData, showMessage }: PersonalInfoProp
                 if (emailError) throw emailError;
                 setEmailUpdateMsg('Yeni e-posta adresinize doğrulama bağlantısı gönderildi.');
             }
+            // KRİTİK NOKTA: Veritabanı güncellendi, şimdi arayüzü yenile
+            await refreshUser();
             showMessage('success', 'Kişisel bilgiler güncellendi.');
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';

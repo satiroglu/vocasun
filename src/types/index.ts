@@ -12,13 +12,14 @@ export interface Profile {
     avatar_url?: string;
     display_name_preference: 'username' | 'fullname';
     leaderboard_visibility?: 'visible' | 'anonymous' | 'hidden';
-    // Not: Veritabanında bunu array yaptıysak string[] olmalı, şimdilik senin koduna sadık kalıyorum
-    preferred_word_list?: 'general' | 'academic' | 'business' | 'toefl' | 'ielts';
+    preferred_word_list?: string[];
     difficulty_level?: 'beginner' | 'intermediate' | 'advanced' | 'mixed';
     accent_preference?: 'US' | 'UK';
     created_at: string;
     marked_for_deletion_at?: string | null;
     is_admin?: boolean;
+    email_notifications?: boolean;
+    marketing_emails?: boolean;
 }
 
 export interface Vocabulary {
@@ -37,6 +38,8 @@ export interface Vocabulary {
     phonetic_ipa?: string;
     synonyms?: string[];
     antonyms?: string[];
+    ipa_us?: string | null;
+    ipa_uk?: string | null;
 }
 
 export interface UserProgress {

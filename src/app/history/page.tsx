@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // useRef EKLENDİ
 import Link from 'next/link';
 import { ArrowLeft, Search, Volume2, CheckCircle, Circle, ChevronLeft, ChevronRight, HelpCircle, History as HistoryIcon, Filter, BookOpen, X, ChevronDown, RotateCcw, Loader2, Sparkles, Clock, AlertTriangle } from 'lucide-react';
 import Input from '@/components/Input';
@@ -56,6 +56,9 @@ export default function History() {
     // Re-learn Confirmation State
     const [confirmRelearnId, setConfirmRelearnId] = useState<number | null>(null);
 
+    // SES REFERANSI (EKLENDİ)
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
     // Debounce Search Term
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -73,11 +76,27 @@ export default function History() {
     const words = data?.items || [];
     const totalCount = data?.totalCount || 0;
 
+    // GÜNCELLENMİŞ SES OYNATMA FONKSİYONU
     const playAudio = (e: React.MouseEvent, url: string | undefined | null, text: string, accent: 'US' | 'UK') => {
         e.preventDefault();
         e.stopPropagation();
+
+        // Varsa eski sesi durdur (Üst üste binmeyi önler)
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current = null; // Referansı temizle
+        }
+
+        // Tarayıcı konuşmasını iptal et
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+
         if (url) {
-            new Audio(url).play().catch(() => { });
+            const audio = new Audio(url);
+            audioRef.current = audio; // Referansa ata
+            audio.play().catch((err) => console.error("Ses çalma hatası:", err));
         } else {
             const u = new SpeechSynthesisUtterance(text);
             u.lang = accent === 'US' ? 'en-US' : 'en-GB';

@@ -15,11 +15,13 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLearnSession, useChoiceOptions, useSaveProgress } from '@/hooks/useLearnSession';
 import { getEditDistance } from '@/lib/utils';
 
+
 type Mode = 'write' | 'choice' | 'flip';
 type FeedbackStatus = 'idle' | 'success' | 'error';
 
 export default function Learn() {
-    const { user } = useUser();
+    // const { user } = useUser();
+    const { user, refreshUser } = useUser();
     const { data: profile } = useProfile(user?.id);
     const { data: sessionData, isLoading: sessionLoading, isRefetching, refetch: refetchSession } = useLearnSession(user?.id);
     const saveProgressMutation = useSaveProgress();
@@ -89,6 +91,8 @@ export default function Learn() {
         }
     };
 
+    const processingRef = useRef(false);
+
     // --- GÜNCELLENMİŞ AKILLI SES FONKSİYONU ---
     const playAudio = (overrideAccent?: 'US' | 'UK', textToSpeak?: string) => {
         stopAudio();
@@ -135,19 +139,29 @@ export default function Learn() {
     };
 
     const handleAnswer = async (answer: string | null, isMasteredManually: boolean = false, visualCorrect: boolean = false) => {
-        if (isProcessing || !user || !currentWord) return;
-        setIsProcessing(true);
+        // 1. KİLİT KONTROLÜ (Race Condition Önlemi)
+        // Eğer işlem zaten sürüyorsa (kilitliyse) veya gerekli veriler yoksa durdur.
+        if (processingRef.current || !user || !currentWord) return;
 
-        setStatus(visualCorrect || isMasteredManually ? 'success' : 'error');
-        setShowFullResult(true);
+        // Kapıyı kilitle
+        processingRef.current = true;
+        setIsProcessing(true); // UI spinner için
 
+        // 2. SESİ HEMEN ÇAL (Optimistic UI)
+        // API cevabını beklemeden sesi çalıyoruz.
+        // Bu sayede mobil tarayıcılar sesi "kullanıcı etkileşimi dışında" sayıp bloklamaz.
         if (visualCorrect || isMasteredManually) {
             playAudio();
         } else {
             playAudio();
         }
 
+        // 3. SONUÇ EKRANINI GÖSTER
+        setStatus(visualCorrect || isMasteredManually ? 'success' : 'error');
+        setShowFullResult(true);
+
         try {
+            // 4. API İSTEĞİ (Arka planda kaydet)
             const response = await saveProgressMutation.mutateAsync({
                 userId: user.id,
                 vocabId: currentWord.id,
@@ -160,6 +174,12 @@ export default function Learn() {
                 const isServerCorrect = response.is_correct || isMasteredManually;
                 const xpGained = response.xp_gained || 0;
 
+                // XP kazanıldıysa kullanıcı bilgisini güncelle (Navbar vs. için)
+                if (xpGained > 0) {
+                    refreshUser();
+                }
+
+                // Oturum istatistiklerini güncelle
                 setSessionStats(prev => ({
                     ...prev,
                     correct: prev.correct + (isServerCorrect ? 1 : 0),
@@ -169,13 +189,18 @@ export default function Learn() {
             }
         } catch (error) {
             console.error("Cevap kaydedilemedi:", error);
-            // Show user-friendly error message
             setFeedbackMsg({
                 type: 'warning',
                 text: 'İlerleme kaydedilemedi. Lütfen internet bağlantınızı kontrol edin.'
             });
         } finally {
-            setIsProcessing(false);
+            // 5. KİLİDİ AÇ
+            // İşlem bittiğinde kilidi açıyoruz.
+            // setTimeout ile minik bir gecikme koyarak spam tıklamaları engelliyoruz.
+            setTimeout(() => {
+                processingRef.current = false;
+                setIsProcessing(false);
+            }, 500);
         }
     };
 

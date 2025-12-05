@@ -22,8 +22,10 @@ type FeedbackStatus = 'idle' | 'success' | 'error';
 
 export default function Learn() {
     const { user, refreshUser } = useUser();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+    // 1. DÜZELTME: Profil verisini aktif ettik. Ayarlar (Aksan, Liste) buradan okunacak.
     const { data: profile } = useProfile(user?.id);
+
     const { data: sessionData, isLoading: sessionLoading, isRefetching, refetch: refetchSession } = useLearnSession(user?.id);
     const saveProgressMutation = useSaveProgress();
 
@@ -42,6 +44,8 @@ export default function Learn() {
 
     const [localQueue, setLocalQueue] = useState<VocabularyItem[]>([]);
     const [initialSessionLength, setInitialSessionLength] = useState(0);
+
+    const startTimeRef = useRef(Date.now()); // Başlangıç zamanı
 
     useEffect(() => {
         if (sessionData?.words) {
@@ -68,6 +72,9 @@ export default function Learn() {
         setShowFullResult(false);
         setIsProcessing(false);
         setFeedbackMsg(null);
+
+        // YENİ: Sayaç sıfırlama
+        startTimeRef.current = Date.now();
     }, [currentIndex, mode]);
 
     const stopAudio = () => {
@@ -86,10 +93,13 @@ export default function Learn() {
     const playAudio = (overrideAccent?: 'US' | 'UK', textToSpeak?: string) => {
         stopAudio();
 
+        // 2. DÜZELTME: Aksan tercihini 'profile' içinden alıyoruz.
+        // user?.accent_preference genelde boştur, doğrusu profile?.accent_preference'dir.
+        const userAccent = overrideAccent || profile?.accent_preference || 'US';
+
         if (textToSpeak) {
             const u = new SpeechSynthesisUtterance(textToSpeak);
-            const targetAccent = overrideAccent || user?.accent_preference || 'US';
-            u.lang = targetAccent === 'UK' ? 'en-GB' : 'en-US';
+            u.lang = userAccent === 'UK' ? 'en-GB' : 'en-US';
             u.rate = 0.9;
             window.speechSynthesis.speak(u);
             return;
@@ -98,10 +108,9 @@ export default function Learn() {
         const wordToPlay = currentWord?.word;
         if (!wordToPlay || !currentWord) return;
 
-        const targetAccent = overrideAccent || user?.accent_preference || 'US';
         let audioSrc: string | null | undefined = null;
 
-        if (targetAccent === 'UK') {
+        if (userAccent === 'UK') {
             audioSrc = currentWord.audio_uk;
         } else {
             audioSrc = currentWord.audio_us;
@@ -117,7 +126,7 @@ export default function Learn() {
             audio.play().catch(() => { });
         } else {
             const u = new SpeechSynthesisUtterance(wordToPlay);
-            u.lang = targetAccent === 'UK' ? 'en-GB' : 'en-US';
+            u.lang = userAccent === 'UK' ? 'en-GB' : 'en-US';
             window.speechSynthesis.speak(u);
         }
     };
@@ -128,14 +137,16 @@ export default function Learn() {
         processingRef.current = true;
         setIsProcessing(true);
 
-        if (visualCorrect || isMasteredManually) {
-            playAudio();
-        } else {
-            playAudio();
-        }
+        // Görsel veya manuel doğrulamada ses çal
+        playAudio();
 
         setStatus(visualCorrect || isMasteredManually ? 'success' : 'error');
         setShowFullResult(true);
+
+        // YENİ: Geçen süreyi hesapla (Milisaniye -> Saniye)
+        // En az 1 saniye, en fazla 60 saniye olarak sınırla (aşırı değerleri önlemek için)
+        const timeSpentMs = Date.now() - startTimeRef.current;
+        const timeSpentSeconds = Math.min(Math.max(Math.round(timeSpentMs / 1000), 1), 60);
 
         try {
             const response = await saveProgressMutation.mutateAsync({
@@ -143,7 +154,8 @@ export default function Learn() {
                 vocabId: currentWord.id,
                 userAnswer: answer,
                 mode: mode,
-                isMastered: isMasteredManually
+                isMastered: isMasteredManually,
+                studyTime: timeSpentSeconds // YENİ: Backend'e gönder
             });
 
             if (response) {
@@ -280,7 +292,8 @@ export default function Learn() {
                                 currentWord={currentWord}
                                 onAnswer={handleAnswer}
                                 playAudio={playAudio}
-                                accentPreference={user?.accent_preference}
+                                // 3. DÜZELTME: User değil profile'dan alıyoruz
+                                accentPreference={profile?.accent_preference}
                             />
                         )}
                     </div>
@@ -311,7 +324,8 @@ export default function Learn() {
                     currentWord={currentWord}
                     isNew={isNew}
                     playAudio={playAudio}
-                    accentPreference={user?.accent_preference}
+                    // 3. DÜZELTME: User değil profile'dan alıyoruz
+                    accentPreference={profile?.accent_preference}
                     onNext={nextQuestion}
                     feedbackMsg={feedbackMsg}
                 />

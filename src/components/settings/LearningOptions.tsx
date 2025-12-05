@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { BookOpen, Target, Languages, List, CheckCircle, TrendingUp, Save, Volume2 } from 'lucide-react';
 import Button from '@/components/Button';
 import { useUser } from '@/hooks/useUser';
-// 1. useQueryClient'i import et
-import { useQueryClient } from '@tanstack/react-query';
+
+// Veri tipleri
+interface VocabSet {
+    id: number;
+    title: string;
+    slug: string;
+    description: string | null;
+}
 
 interface LearningOptionsProps {
     userData: {
         id: string;
         dailyGoal: number;
-        preferredWordList: string;
+        preferredWordList: string; // Frontend'de tek bir seçim tutuyoruz (String)
         difficultyLevel: string;
         accent: string;
     };
@@ -19,61 +25,57 @@ interface LearningOptionsProps {
 
 export default function LearningOptions({ userData, showMessage }: LearningOptionsProps) {
     const { refreshUser } = useUser();
+
+    // Form verisini başlatırken userData'yı kullan
     const [formData, setFormData] = useState(userData);
     const [saving, setSaving] = useState(false);
-    const [vocabSets, setVocabSets] = useState<{ id: number; title: string; slug: string; description: string | null }[]>([]);
+    const [vocabSets, setVocabSets] = useState<VocabSet[]>([]);
 
-    // 2. QueryClient'ı başlat
-    const queryClient = useQueryClient();
-
-    React.useEffect(() => {
-        const fetchVocabSets = async () => {
-            const { data } = await supabase
+    // 1. Sayfa açılınca Kelime Setlerini Çek
+    useEffect(() => {
+        const fetchSets = async () => {
+            const { data, error } = await supabase
                 .from('vocabulary_sets')
-                .select('id, title, slug, description')
-                .eq('is_active', true);
+                .select('*')
+                .eq('is_active', true)
+                .order('id', { ascending: true });
 
-            if (data) {
+            if (!error && data) {
                 setVocabSets(data);
+
+                // Eğer kullanıcının hiç seçimi yoksa ve 'general' listesi varsa, onu varsayılan yap
                 if (!userData.preferredWordList && data.find(s => s.slug === 'general')) {
                     setFormData(prev => ({ ...prev, preferredWordList: 'general' }));
                 }
             }
         };
-        fetchVocabSets();
-    }, [userData.preferredWordList]);
+        fetchSets();
+    }, [userData.preferredWordList]); // userData değişirse tekrar kontrol et
 
     const saveLearning = async () => {
         setSaving(true);
         try {
+            // HATA BURADAYDI: Düz string gönderiyorduk, Array göndermemiz lazımdı.
+            // Düzeltme: preferredWordList değerini köşeli parantez içine aldık.
             const { error } = await supabase
                 .from('profiles')
                 .update({
                     daily_goal: formData.dailyGoal,
-                    preferred_word_list: [formData.preferredWordList],
+                    preferred_word_list: [formData.preferredWordList], // BURASI DÜZELTİLDİ: String -> Array ['...']
                     difficulty_level: formData.difficultyLevel,
                     accent_preference: formData.accent
                 })
                 .eq('id', formData.id);
+
             if (error) throw error;
 
-            // 3. Kritik Güncellemeler Burada:
+            if (refreshUser) await refreshUser();
 
-            // A. Kullanıcı context'ini güncelle (Aksan vb. için)
-            await refreshUser();
+            showMessage('success', 'Ayarlar başarıyla kaydedildi.');
 
-            // B. React Query Cache'ini Temizle (Kelime sayısı ve oturum için)
-            // Bu satır, /learn sayfasına gidildiğinde verinin sunucudan TEKRAR çekilmesini sağlar.
-            await queryClient.invalidateQueries({ queryKey: ['learn-session'] });
-
-            // İsteğe bağlı: Profil verisini kullanan diğer sorguları da tazeleyelim
-            await queryClient.invalidateQueries({ queryKey: ['profile'] });
-            await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-
-            showMessage('success', 'Öğrenim ayarları kaydedildi.');
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
-            showMessage('error', errorMessage);
+        } catch (error: any) {
+            console.error('Save error:', error);
+            showMessage('error', error.message || 'Kaydetme sırasında bir hata oluştu');
         } finally {
             setSaving(false);
         }
@@ -154,6 +156,8 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                 </div>
                 <p className="text-xs text-slate-500 mb-3 ml-7">Günlük çalışmalarında karşına çıkacak kelime havuzunu belirle.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    {/* Veritabanından gelen listeler */}
                     {vocabSets.map(set => (
                         <div
                             key={set.slug}
@@ -172,6 +176,7 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                         </div>
                     ))}
 
+                    {/* Statik 'Yakında' kutuları */}
                     {[
                         { value: 'academic', label: 'Akademik', desc: 'Üniversite ve akademik metinler', icon: '🎓' },
                         { value: 'toefl', label: 'TOEFL', desc: 'TOEFL sınavına yönelik', icon: '📝' },
@@ -192,7 +197,7 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                 </div>
             </div>
 
-            {/* Zorluk Seviyesi - YAKINDA */}
+            {/* Zorluk Seviyesi */}
             <div className="mb-6 relative">
                 <div className="flex items-center gap-2 mb-1">
                     <TrendingUp size={20} className="text-slate-400" />

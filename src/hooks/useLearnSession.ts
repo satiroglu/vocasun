@@ -108,7 +108,7 @@ export function useChoiceOptions(wordId: number | undefined) {
     });
 }
 
-// Progress Kaydetme (Değişmedi - Zaten güvenli hale getirmiştik)
+// Progress Kaydetme (GÜNCELLENDİ: studyTime eklendi)
 export function useSaveProgress() {
     const queryClient = useQueryClient();
 
@@ -118,20 +118,23 @@ export function useSaveProgress() {
             vocabId,
             userAnswer,
             isMastered = false,
-            mode = 'flip'
+            mode = 'flip', // Virgül eklendi
+            studyTime = 0  // YENİ: Varsayılan 0
         }: {
             userId: string;
             vocabId: number;
             userAnswer?: string | null;
             isMastered?: boolean;
             mode?: 'write' | 'choice' | 'flip';
+            studyTime?: number; // YENİ: Tip tanımı eklendi
         }) => {
             const { data, error: rpcError } = await supabase.rpc('save_user_progress', {
                 p_user_id: userId,
                 p_vocab_id: vocabId,
                 p_user_answer: userAnswer,
                 p_is_mastered: isMastered,
-                p_mode: mode
+                p_mode: mode,
+                p_study_time: studyTime // YENİ: Backend'e parametre olarak gönderiliyor
             });
 
             if (rpcError) throw new Error(rpcError.message);

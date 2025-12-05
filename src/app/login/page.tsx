@@ -10,8 +10,10 @@ import Modal from '@/components/Modal';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import Logo from '@/components/Logo';
+import { useUser } from '@/hooks/useUser';
 
 export default function Login() {
+    const { refreshUser } = useUser(); // Hook'u çağır
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -58,6 +60,8 @@ export default function Login() {
                     setShowRestoreModal(true);
                     // Loading false yapmıyoruz ki arkada form donuk kalsın
                 } else {
+                    // YÖNLENDİRMEDEN ÖNCE VERİYİ TAZELE
+                    await refreshUser();
                     // Temiz giriş
                     router.push('/dashboard');
                     router.refresh();

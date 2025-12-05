@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { Shield, Eye, EyeOff, Lock } from 'lucide-react';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import { useUser } from '@/hooks/useUser';
 
 interface SecuritySettingsProps {
     userData: {
@@ -12,6 +13,7 @@ interface SecuritySettingsProps {
 }
 
 export default function SecuritySettings({ userData, showMessage }: SecuritySettingsProps) {
+    const { refreshUser } = useUser();
     const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
     const [showPass, setShowPass] = useState({ current: false, new: false, confirm: false });
     const [saving, setSaving] = useState(false);
@@ -32,7 +34,8 @@ export default function SecuritySettings({ userData, showMessage }: SecuritySett
 
             const { error: updateError } = await supabase.auth.updateUser({ password: passwords.new });
             if (updateError) throw updateError;
-
+            // KRİTİK NOKTA: Veritabanı güncellendi, şimdi arayüzü yenile
+            await refreshUser();
             setPasswords({ current: '', new: '', confirm: '' });
             showMessage('success', 'Şifreniz başarıyla değiştirildi.');
         } catch (error: any) {

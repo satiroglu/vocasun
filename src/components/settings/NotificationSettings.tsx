@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import { Bell, Mail, Globe } from 'lucide-react';
 import Button from '@/components/Button';
+import { useUser } from '@/hooks/useUser';
 
 interface NotificationSettingsProps {
     userData: {
+        id: string; // <-- BU SATIR EKLENDİ (Hata Çözümü)
         emailNotifications: boolean;
         marketingEmails: boolean;
     };
@@ -11,15 +14,33 @@ interface NotificationSettingsProps {
 }
 
 export default function NotificationSettings({ userData, showMessage }: NotificationSettingsProps) {
+    const { refreshUser } = useUser();
     const [formData, setFormData] = useState(userData);
     const [saving, setSaving] = useState(false);
 
     const saveNotifications = async () => {
         setSaving(true);
-        setTimeout(() => {
+        try {
+            // GERÇEK KAYIT İŞLEMİ
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    email_notifications: formData.emailNotifications,
+                    marketing_emails: formData.marketingEmails
+                })
+                .eq('id', userData.id); // Artık userData.id hata vermeyecek
+
+            if (error) throw error;
+
+            // Veriyi tazelemek için
+            await refreshUser();
+
             showMessage('success', 'Bildirim ayarları güncellendi.');
+        } catch (error: any) {
+            showMessage('error', 'Kaydedilemedi: ' + error.message);
+        } finally {
             setSaving(false);
-        }, 800);
+        }
     };
 
     return (

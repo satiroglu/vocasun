@@ -5,13 +5,15 @@ import Link from 'next/link';
 import { Trophy, TrendingUp, Clock, ChevronRight, Volume2, BookOpen, Sun, Target, Zap, Sparkles } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useRef } from 'react'; // useRef'i unutmayın
 
 export default function Dashboard() {
     const router = useRouter();
     const { user, loading: userLoading } = useUser();
     const { data, isLoading: dashboardLoading } = useDashboard(user?.id);
 
-    // Auth check handled by AuthGuard in layout
+    // SES REFERANSI (Düzeltme Burası)
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const loading = userLoading || dashboardLoading;
     const profile = data?.profile;
@@ -28,11 +30,27 @@ export default function Dashboard() {
         return `${Math.floor(diffInSeconds / 86400)} gün önce`;
     };
 
+    // SES FONKSİYONU (Düzeltme Burası)
     const playAudio = (e: React.MouseEvent, url: string | undefined | null, text: string, accent: 'US' | 'UK') => {
         e.preventDefault();
-        e.stopPropagation(); // Tıklamanın üst elemanlara geçmesini engelle
+        e.stopPropagation();
+
+        // Varsa eski sesi durdur (Üst üste binmeyi önler)
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current = null; // Referansı temizle
+        }
+
+        // Tarayıcı konuşmasını iptal et
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+
         if (url) {
-            new Audio(url).play().catch(() => { });
+            const audio = new Audio(url);
+            audioRef.current = audio; // Yeni sesi referansa ata
+            audio.play().catch((err) => console.error("Ses çalma hatası:", err));
         } else {
             const u = new SpeechSynthesisUtterance(text);
             u.lang = accent === 'US' ? 'en-US' : 'en-GB';
@@ -132,7 +150,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* YENİ: Haftalık Puan Kartı */}
+                    {/* Haftalık Puan Kartı */}
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
@@ -145,7 +163,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Seviye Kartı (Mevcut kodunda vardı, sadece yerini kaydırdık) */}
+                    {/* Seviye Kartı */}
                     <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">

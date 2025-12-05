@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Eye as EyeIcon, CheckCircle, Shield, Eye, EyeOff, User, Save } from 'lucide-react';
 import Button from '@/components/Button';
+import { useUser } from '@/hooks/useUser';
 
 interface AppearancePreferencesProps {
     userData: {
@@ -16,6 +17,7 @@ interface AppearancePreferencesProps {
 }
 
 export default function AppearancePreferences({ userData, showMessage }: AppearancePreferencesProps) {
+    const { refreshUser } = useUser();
     const [formData, setFormData] = useState(userData);
     const [saving, setSaving] = useState(false);
 
@@ -30,6 +32,8 @@ export default function AppearancePreferences({ userData, showMessage }: Appeara
                 })
                 .eq('id', formData.id);
             if (error) throw error;
+            // KRİTİK NOKTA: Veritabanı güncellendi, şimdi arayüzü yenile
+            await refreshUser();
             showMessage('success', 'Görünüm tercihleri kaydedildi.');
         } catch (error: any) {
             showMessage('error', error.message);

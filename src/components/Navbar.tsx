@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+// DİKKAT: supabase importu kaldırıldı, artık gerek yok.
 import {
     Sun, Menu, X, LogOut,
     LayoutDashboard, BookOpen, Trophy, Settings, HelpCircle, User, Sparkles
@@ -12,7 +12,9 @@ import { useUser } from '@/hooks/useUser';
 import Logo from '@/components/Logo';
 
 export default function Navbar() {
-    const { user, loading } = useUser(); // user artık profil bilgilerini de içeriyor (ExtendedUser)
+    // signOut fonksiyonunu hook'tan alıyoruz
+    const { user, loading, signOut } = useUser();
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const pathname = usePathname();
@@ -36,12 +38,14 @@ export default function Navbar() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // GÜNCELLENEN LOGOUT FONKSİYONU
     const handleLogout = async () => {
         setIsMenuOpen(false);
         setIsUserMenuOpen(false);
-        await supabase.auth.signOut();
-        router.push('/login');
-        router.refresh();
+
+        // Supabase yerine AuthProvider'dan gelen signOut'u kullanıyoruz.
+        // Bu fonksiyon hem state'i temizler hem de yönlendirmeyi yapar.
+        await signOut();
     };
 
     const getDisplayName = () => {
@@ -56,15 +60,13 @@ export default function Navbar() {
     const mainNavLinks = [
         { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Öğren', href: '/learn', icon: BookOpen },
-        { name: 'Kelimelerim', href: '/history', icon: BookOpen }, // History -> Kelimelerim olarak güncellendi
+        { name: 'Kelimelerim', href: '/history', icon: BookOpen },
         { name: 'Liderlik', href: '/leaderboard', icon: Trophy },
-        // { name: 'Cümle Kur', href: '#', icon: Sparkles, badge: 'YAKINDA', disabled: true }, // daha sonra aktifleştirilecek
     ];
 
     // Kullanıcı Menüsü Linkleri (Desktop'ta dropdown içinde, Mobil'de listede)
     const userMenuLinks = [
         { name: 'Profil', href: user?.username ? `/profile/${user.username}` : '/dashboard', icon: User },
-        // { name: 'Nasıl?', href: '/info', icon: HelpCircle }, // Gizlendi
         { name: 'Yardım', href: '/help', icon: HelpCircle },
         { name: 'Ayarlar', href: '/settings', icon: Settings },
     ];

@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { BookOpen, Target, Languages, List, CheckCircle, TrendingUp, Save, Volume2 } from 'lucide-react';
 import Button from '@/components/Button';
+import { useUser } from '@/hooks/useUser';
+// 1. useQueryClient'i import et
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LearningOptionsProps {
     userData: {
@@ -15,9 +18,13 @@ interface LearningOptionsProps {
 }
 
 export default function LearningOptions({ userData, showMessage }: LearningOptionsProps) {
+    const { refreshUser } = useUser();
     const [formData, setFormData] = useState(userData);
     const [saving, setSaving] = useState(false);
     const [vocabSets, setVocabSets] = useState<{ id: number; title: string; slug: string; description: string | null }[]>([]);
+
+    // 2. QueryClient'ı başlat
+    const queryClient = useQueryClient();
 
     React.useEffect(() => {
         const fetchVocabSets = async () => {
@@ -28,7 +35,6 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
 
             if (data) {
                 setVocabSets(data);
-                // Eğer kullanıcıda kayıtlı bir liste yoksa ve 'general' listesi varsa onu seç
                 if (!userData.preferredWordList && data.find(s => s.slug === 'general')) {
                     setFormData(prev => ({ ...prev, preferredWordList: 'general' }));
                 }
@@ -44,12 +50,26 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                 .from('profiles')
                 .update({
                     daily_goal: formData.dailyGoal,
-                    preferred_word_list: [formData.preferredWordList], // Array olarak gönderiyoruz
+                    preferred_word_list: [formData.preferredWordList],
                     difficulty_level: formData.difficultyLevel,
                     accent_preference: formData.accent
                 })
                 .eq('id', formData.id);
             if (error) throw error;
+
+            // 3. Kritik Güncellemeler Burada:
+
+            // A. Kullanıcı context'ini güncelle (Aksan vb. için)
+            await refreshUser();
+
+            // B. React Query Cache'ini Temizle (Kelime sayısı ve oturum için)
+            // Bu satır, /learn sayfasına gidildiğinde verinin sunucudan TEKRAR çekilmesini sağlar.
+            await queryClient.invalidateQueries({ queryKey: ['learn-session'] });
+
+            // İsteğe bağlı: Profil verisini kullanan diğer sorguları da tazeleyelim
+            await queryClient.invalidateQueries({ queryKey: ['profile'] });
+            await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+
             showMessage('success', 'Öğrenim ayarları kaydedildi.');
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
@@ -134,7 +154,6 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                 </div>
                 <p className="text-xs text-slate-500 mb-3 ml-7">Günlük çalışmalarında karşına çıkacak kelime havuzunu belirle.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* DB'den gelen aktif listeler */}
                     {vocabSets.map(set => (
                         <div
                             key={set.slug}
@@ -153,7 +172,6 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                         </div>
                     ))}
 
-                    {/* Gelecek Listeler (Statik) */}
                     {[
                         { value: 'academic', label: 'Akademik', desc: 'Üniversite ve akademik metinler', icon: '🎓' },
                         { value: 'toefl', label: 'TOEFL', desc: 'TOEFL sınavına yönelik', icon: '📝' },
@@ -171,25 +189,6 @@ export default function LearningOptions({ userData, showMessage }: LearningOptio
                             <div className="text-xs text-slate-500">{list.desc}</div>
                         </div>
                     ))}
-                </div>
-            </div>
-
-            {/* Kelime Listelerim - Bilgilendirme */}
-            <div className="mb-6 relative">
-                <div className="flex items-center gap-2 mb-1">
-                    <BookOpen size={20} className="text-slate-400" />
-                    <label className="block text-sm font-bold text-slate-400">Kelime Listelerim</label>
-                    <span className="ml-auto px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md">YAKINDA</span>
-                </div>
-                <p className="text-xs text-slate-500 mb-3 ml-7">Kendi oluşturduğun özel kelime listelerini buradan yönet.</p>
-                <div className="p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 opacity-50 pointer-events-none">
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3 text-indigo-600">
-                            <List size={24} />
-                        </div>
-                        <h4 className="font-bold text-slate-800 mb-1">Kendi Listeni Oluştur</h4>
-                        <p className="text-sm text-slate-500 max-w-xs">Çok yakında kendi kelime listelerini oluşturup arkadaşlarınla paylaşabileceksin.</p>
-                    </div>
                 </div>
             </div>
 

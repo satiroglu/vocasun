@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { AlertTriangle, Trash2, CheckCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
+import { useUser } from '@/hooks/useUser';
 
 interface DangerZoneProps {
     userData: {
@@ -13,6 +14,7 @@ interface DangerZoneProps {
 }
 
 export default function DangerZone({ userData, showMessage }: DangerZoneProps) {
+    const { refreshUser } = useUser();
     const router = useRouter();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showDeleteSuccessModal, setShowDeleteSuccessModal] = useState(false);
@@ -23,6 +25,8 @@ export default function DangerZone({ userData, showMessage }: DangerZoneProps) {
             deletionDate.setDate(deletionDate.getDate() + 14);
             const { error } = await supabase.from('profiles').update({ marked_for_deletion_at: deletionDate.toISOString() }).eq('id', userData.id);
             if (error) throw error;
+            // KRİTİK NOKTA: Veritabanı güncellendi, şimdi arayüzü yenile
+            await refreshUser();
             setShowDeleteModal(false);
             setShowDeleteSuccessModal(true);
         } catch (error: any) {
